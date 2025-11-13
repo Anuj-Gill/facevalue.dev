@@ -1,0 +1,13 @@
+{
+  "name": "meme-stock-exchange",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "broker"
+  ],
+  "repository": "https://github.com/Anuj-Gill/meme-stock-exchange.git",
+  "scripts": {
+    "broker:dev": "yarn workspace @meme-stock-exchange/broker"
+  }
+}
