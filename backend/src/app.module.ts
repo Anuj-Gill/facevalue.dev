@@ -10,6 +10,9 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { APP_FILTER } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from './services/prisma.service';
+import { OrderController } from './apis/order/order.controller';
+import { OrderService } from './apis/order/order.service';
+import { BrokerService } from './services/broker.service';
 
 @Module({
   imports: [
@@ -19,7 +22,7 @@ import { PrismaService } from './services/prisma.service';
       cache: true,
     }),
   ],
-  controllers: [AppController, OAuthController],
+  controllers: [AppController, OAuthController, OrderController],
   providers: [
     {
       provide: APP_FILTER,
@@ -29,7 +32,9 @@ import { PrismaService } from './services/prisma.service';
     SupabaseService,
     OAuthService,
     JwtService,
-    PrismaService
+    PrismaService,
+    OrderService,
+    BrokerService
   ],
 })
 export class AppModule {}

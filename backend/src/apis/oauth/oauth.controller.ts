@@ -25,7 +25,6 @@ export class OAuthController {
   constructor(private readonly oauthService: OAuthService) {}
 
   @Post('register')
-  @HttpCode(HttpStatus.OK)
   @Header('Content-Type', 'application/json')
   @SetMetadata('apiIdentifier', apiIdentifiers.oauth_register)
   async registerUser(

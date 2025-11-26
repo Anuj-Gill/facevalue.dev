@@ -19,41 +19,35 @@ export class OAuthService {
   async registerUser(payload: OAuthRegisterDTO) {
     const { refreshToken, accessToken } = payload;
 
-    console.log(
-      'Pre-verification: ',
-      this.configService.get<string>('SUPABASE_JWT_SECRET'),
-    );
-
     const userMetaData = await this.jwtService.verifyAsync(accessToken, {
       secret: this.configService.get<string>('SUPABASE_JWT_SECRET'),
     });
 
-    console.log('Post verifications');
     if (!userMetaData) {
       throw new UnauthorizedException();
     }
 
     const user = await this.prisma.user.upsert({
       where: {
-        supabaseId: userMetaData.sub,
+        id: userMetaData.sub,
       },
       update: {
         refreshToken,
       },
       create: {
-        supabaseId: userMetaData.sub,
+        id: userMetaData.sub,
         email: userMetaData.email,
         name: userMetaData.user_metadata.name,
         refreshToken,
         provider: userMetaData.app_metadata.provider,
-        avatar_url: userMetaData.user_metadata.avatar_url,
+        avatarUrl: userMetaData.user_metadata.avatar_url,
       },
     });
   }
 
   async refreshAccessToken(supabaseUserId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({
-      where: { supabaseId: supabaseUserId },
+      where: { id: supabaseUserId },
       select: { refreshToken: true, id: true },
     });
 

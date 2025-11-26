@@ -17,24 +17,82 @@ datasource db {
         
 
 model User {
-    id            String    @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-    supabaseId    String    @unique @db.Uuid @map("supabase_id")
+    id            String    @id @unique @db.Uuid @map("supabase_id")
     name          String
     email         String    @unique
     image         String?
     gender        Gender?
     refreshToken  String @map("refresh_token")
     createdAt     DateTime  @default(now()) @map("created_at")
-    updatedAt     DateTime  @updatedAt 
+    updatedAt     DateTime  @updatedAt @map("updated_at")
     isDeleted     Boolean?  @default(false) @map("is_deleted")
     provider      String
-    avatar_url    String?
+    avatarUrl     String?   @map("avatar_url")
 
     @@map("users")
 }
 
 enum Gender {
-  MALE
-  FEMALE
-  OTHER
+  male
+  female
+  other
+}
+
+model Order {
+  id              String @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  userId          String @map("user_id")
+  symbol          String
+  side            Side 
+  type            OrderType
+  price           Int?
+  originalQuantity Int  @map("original_quantity")
+  remainingQuantity Int @map("remaining_quantity")
+  status          OrderStatus @default(open)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("orders")
+  @@index([symbol])
+  @@index([side, type])
+}
+
+enum Side {
+  buy
+  sell
+}
+
+enum OrderType {
+  limit
+  market
+}
+
+enum OrderStatus {
+  open
+  partial
+  filled
+  cancelled
+}
+
+model Trade {
+  id           String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  symbol       String
+  buyOrderId   String   @map("buy_order_id") @db.Uuid
+  sellOrderId  String   @map("sell_order_id") @db.Uuid
+  price        Int
+  quantity     Int
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("trades")
+  @@index([symbol])
+  @@index([buyOrderId])
+  @@index([sellOrderId])
+}
+
+model Symbol {
+  id           String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  symbol       String   @unique
+  lastTradePrice Int    @map("last_trade_price")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 }

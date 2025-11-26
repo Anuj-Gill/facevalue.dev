@@ -1,0 +1,488 @@
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Side, OrderType, OrderStatus } from '@prisma/client';
+import { symbols } from 'src/common/symbols.config';
+import { PrismaService } from './prisma.service';
+
+interface Order {
+  id: string;
+  userId: string;
+  symbol: string;
+  side: Side;
+  type: OrderType;
+  price?: number;
+  originalQuantity: number;
+  remainingQuantity: number
+}
+
+interface OrderLocation {
+  price: number;
+  node: ListNode;
+}
+
+export class ListNode {
+  order: Order;
+  next: ListNode | null;
+  prev: ListNode | null;
+
+  constructor(order: Order) {
+    this.order = order;
+    this.next = null;
+    this.prev = null;
+  }
+}
+
+export class LinkedList {
+  head: ListNode | null;
+  tail: ListNode | null;
+  length: number;
+
+  constructor() {
+    ((this.head = null), (this.tail = null), (this.length = 0));
+  }
+
+  //TODO: define required methods for the linked list
+  addNodeToTail(node: ListNode) {
+    if (!this.head) {
+      this.head = node;
+      this.tail = node;
+      this.length++;
+      return;
+    }
+
+    this.tail.next = node;
+    node.prev = this.tail;
+    this.length++;
+  }
+
+  removeHeadNode() {
+    if (!this.head) {
+      return;
+    }
+
+    if (!this.head.next) {
+      this.head = null;
+      this.tail = null;
+      this.length = 0;
+      return;
+    }
+
+    this.head = this.head.next;
+    this.head.prev = null;
+    this.length--;
+  }
+}
+
+export class OrderBookSide {
+  isBid: boolean;
+  priceLevels: number[];
+  levelMap: Map<number, LinkedList>;
+  orderMap: Map<string, OrderLocation>;
+
+  constructor(isBid: boolean) {
+    this.isBid = isBid;
+    this.priceLevels = [];
+    this.levelMap = new Map();
+    this.orderMap = new Map();
+  }
+
+  removeOrderMap(id: string) {
+    this.orderMap.delete(id);
+  }
+
+  findInsertIndex(price: number, isBid: boolean) {
+    let low = 0;
+    let high = this.priceLevels.length - 1;
+    let mid: number;
+    const arr = this.priceLevels;
+    while (low <= high) {
+      mid = Math.floor(low + (high - low) / 2);
+      if (isBid) {
+        if (price > arr[mid]) high = mid - 1;
+        else low = mid + 1;
+      } else {
+        if (price < arr[mid]) high = mid - 1;
+        else low = mid + 1;
+      }
+    }
+    return low;
+  }
+
+  addLimitOrder(order: Order) {
+    const price = order.price;
+    let list = this.levelMap.get(price);
+    if (!list) {
+      const index = this.findInsertIndex(price, order.side == Side.buy);
+      this.priceLevels.splice(index, 0, price);
+      list = new LinkedList();
+      this.levelMap.set(price, list);
+    }
+    const node = new ListNode(order);
+    list.addNodeToTail(node);
+    this.orderMap.set(order.id, { price, node });
+  }
+}
+
+export class OrderBook {
+  symbol: string;
+  bids: OrderBookSide;
+  asks: OrderBookSide;
+  lastTradePrice?: number;
+
+  constructor(symbol: string) {
+    this.symbol = symbol;
+    this.bids = new OrderBookSide(true);
+    this.asks = new OrderBookSide(false);
+    //this is to be fetched from db, and then will be passed from the onModuleInit only from the BrokerService. Hardecoding to 120.00 for now
+    this.lastTradePrice = 12000;
+  }
+}
+
+@Injectable()
+export class BrokerService implements OnModuleInit {
+  private readonly logger = new Logger(BrokerService.name);
+  private orderBooks: Map<string, OrderBook> = new Map();
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  async onModuleInit() {
+    this.logger.log(
+      'Initializing order books for symbols: ' + symbols.join(', '),
+    );
+    symbols.forEach((symbol) => {
+      this.orderBooks.set(symbol, new OrderBook(symbol));
+    });
+    //Insert open and partial order's into their order book's
+    const pendingOrders = await this.prisma.order.findMany({
+      where: {
+        AND: [
+          {
+            type: {
+              equals: OrderType.limit,
+            },
+          },
+          {
+            status: {
+              in: [OrderStatus.open, OrderStatus.partial]
+            }
+          }
+        ],
+      },
+    });
+    pendingOrders.forEach((order) => {
+      this.handleLimitOrder(order);
+    })
+    this.logger.log('Order books initialized successfully');
+  }
+
+  private logOrderBookState(symbol: string, label: string) {
+    const orderBook = this.orderBooks.get(symbol);
+    if (!orderBook) return;
+
+    const bidsSnapshot = {
+      priceLevels: orderBook.bids.priceLevels,
+      levelMap: Array.from(orderBook.bids.levelMap.entries()).map(
+        ([price, list]) => ({
+          price,
+          queueLength: list.length,
+          orders: this.getOrdersFromList(list),
+        }),
+      ),
+      orderMap: Array.from(orderBook.bids.orderMap.entries()).map(
+        ([id, loc]) => ({
+          orderId: id.slice(0, 8),
+          price: loc.price,
+          qty: loc.node.order.remainingQuantity,
+        }),
+      ),
+    };
+
+    const asksSnapshot = {
+      priceLevels: orderBook.asks.priceLevels,
+      levelMap: Array.from(orderBook.asks.levelMap.entries()).map(
+        ([price, list]) => ({
+          price,
+          queueLength: list.length,
+          orders: this.getOrdersFromList(list),
+        }),
+      ),
+      orderMap: Array.from(orderBook.asks.orderMap.entries()).map(
+        ([id, loc]) => ({
+          orderId: id.slice(0, 8),
+          price: loc.price,
+          qty: loc.node.order.remainingQuantity,
+        }),
+      ),
+    };
+
+    this.logger.log(
+      `\n========== ORDER BOOK STATE (${label}) - ${symbol} ==========`,
+    );
+    this.logger.log(`Last Trade Price: ${orderBook.lastTradePrice}`);
+    this.logger.log(`BIDS: ${JSON.stringify(bidsSnapshot, null, 2)}`);
+    this.logger.log(`ASKS: ${JSON.stringify(asksSnapshot, null, 2)}`);
+    this.logger.log(`========================================\n`);
+  }
+
+  private getOrdersFromList(list: LinkedList): any[] {
+    const orders = [];
+    let current = list.head;
+    while (current) {
+      orders.push({
+        orderId: current.order.id.slice(0, 8),
+        qty: current.order.remainingQuantity,
+      });
+      current = current.next;
+    }
+    return orders;
+  }
+
+  async updateOrderInDB(
+    buyOrder: Order,
+    sellOrder: Order,
+    matchedQty: number,
+    tradePrice: number,
+  ) {
+    this.logger.log(
+      `Updating orders in DB - Buy: ${buyOrder.id}, Sell: ${sellOrder.id}, Qty: ${matchedQty}, Price: ${tradePrice}`,
+    );
+    await this.prisma.$transaction([
+      this.prisma.order.update({
+        where: {
+          id: buyOrder.id,
+        },
+        data: {
+          remainingQuantity: buyOrder.remainingQuantity,
+          status:
+            buyOrder.remainingQuantity > 0
+              ? OrderStatus.partial
+              : OrderStatus.filled,
+        },
+      }),
+      this.prisma.order.update({
+        where: {
+          id: sellOrder.id,
+        },
+        data: {
+          remainingQuantity: sellOrder.remainingQuantity,
+          status:
+            sellOrder.remainingQuantity > 0
+              ? OrderStatus.partial
+              : OrderStatus.filled,
+        },
+      }),
+      this.prisma.trade.create({
+        data: {
+          symbol: buyOrder.symbol,
+          buyOrderId: buyOrder.id,
+          sellOrderId: sellOrder.id,
+          price: tradePrice,
+          quantity: matchedQty,
+        },
+      }),
+    ]);
+  }
+
+  async handleLimitOrderMatching(order: Order) {
+    this.logger.log(
+      `Starting matching for order: ${order.id}, Symbol: ${order.symbol}, Side: ${order.side}, Type: ${order.type}, Price: ${order.price}, Qty: ${order.remainingQuantity}`,
+    );
+
+    this.logOrderBookState(order.symbol, 'BEFORE MATCHING');
+
+    const orderBook = this.orderBooks.get(order.symbol);
+    const targetSide = order.side == Side.buy ? orderBook.asks : orderBook.bids;
+
+    while (order.remainingQuantity > 0 && targetSide.priceLevels.length > 0) {
+      const priceToCompare = targetSide.priceLevels[0];
+
+      const canMatch =
+        order.side === Side.buy
+          ? order.price >= priceToCompare
+          : order.price <= priceToCompare;
+
+      if (!canMatch) break;
+
+      const headNode = targetSide.levelMap.get(priceToCompare)?.head;
+
+      if (!headNode) break;
+
+      const restingOrder = headNode.order;
+      const matchedQty = Math.min(
+        order.remainingQuantity,
+        restingOrder.remainingQuantity,
+      );
+
+      this.logger.log(
+        `Match found! Price: ${priceToCompare}, Qty: ${matchedQty}, Incoming: ${order.id}, Resting: ${restingOrder.id}`,
+      );
+
+      const updatedIncomingOrder = {
+        ...order,
+        remainingQuantity: order.remainingQuantity - matchedQty,
+      };
+      const updatedRestingOrder = {
+        ...restingOrder,
+        remainingQuantity: restingOrder.remainingQuantity - matchedQty,
+      };
+
+      await this.updateOrderInDB(
+        updatedIncomingOrder,
+        updatedRestingOrder,
+        matchedQty,
+        priceToCompare,
+      );
+
+      orderBook.lastTradePrice = priceToCompare;
+      await this.prisma.symbol.update({
+        where: {
+          symbol: order.symbol,
+        },
+        data: {
+          lastTradePrice: priceToCompare,
+        },
+      });
+
+      this.logger.log(
+        `Updated last trade price for ${order.symbol}: ${priceToCompare}`,
+      );
+
+      order.remainingQuantity -= matchedQty;
+      restingOrder.remainingQuantity -= matchedQty;
+
+      if (restingOrder.remainingQuantity === 0) {
+        targetSide.removeOrderMap(restingOrder.id);
+        targetSide.levelMap.get(priceToCompare).removeHeadNode();
+        this.logger.log('Removed ordermap and headnode');
+
+        if (!targetSide.levelMap.get(priceToCompare)?.head) {
+          targetSide.levelMap.delete(priceToCompare);
+          targetSide.priceLevels.shift();
+          this.logger.log('Removed levelmap and priceLevel for that price');
+        }
+      }
+      this.logOrderBookState(order.symbol, 'AFTER MATCHING');
+    }
+
+    await this.AddOrRemoveOrder(order);
+
+    this.logger.log(`Finished matching for order ${order.id}`);
+  }
+
+  handleLimitOrder(order: Order) {
+    const orderBook = this.orderBooks.get(order.symbol);
+    if (!orderBook) {
+      throw new Error('Order placed for Invalid Symbol');
+    }
+    const bookSide = order.side == Side.buy ? orderBook.bids : orderBook.asks;
+    bookSide.addLimitOrder(order);
+  }
+
+  async AddOrRemoveOrder(order: Order) {
+    if (order.remainingQuantity > 0 && order.type === OrderType.limit) {
+      this.logger.log(
+        `Adding remaining qty ${order.remainingQuantity} to order book for order ${order.id}`,
+      );
+      this.handleLimitOrder(order);
+    } else if (order.remainingQuantity > 0 && order.type === OrderType.market) {
+      this.logger.log(
+        `Cancelling remaining qty ${order.remainingQuantity} for IOC order ${order.id}`,
+      );
+      if (order.remainingQuantity < order.originalQuantity) {
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: OrderStatus.partial,
+            remainingQuantity: order.remainingQuantity,
+          },
+        });
+      } else {
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: OrderStatus.cancelled,
+            remainingQuantity: 0,
+          },
+        });
+      }
+    }
+  }
+
+  async handleMarketOrderMatching(order: Order) {
+    this.logger.log(
+      `Starting matching for market order: ${order.id}, Symbol: ${order.symbol}, Side: ${order.side}, Type: ${order.type}, Price: ${order.price}, Qty: ${order.remainingQuantity}`,
+    );
+
+    this.logOrderBookState(order.symbol, 'BEFORE MATCHING');
+
+    const orderBook = this.orderBooks.get(order.symbol);
+    const targetSide = order.side == Side.buy ? orderBook.asks : orderBook.bids;
+
+    while (order.remainingQuantity > 0 && targetSide.priceLevels.length > 0) {
+      const targetPrice = targetSide.priceLevels[0];
+
+      const headNode = targetSide.levelMap.get(targetPrice)?.head;
+
+      if (!headNode) break;
+
+      const restingOrder = headNode.order;
+      const matchedQty = Math.min(
+        order.remainingQuantity,
+        restingOrder.remainingQuantity,
+      );
+
+      this.logger.log(
+        `Match found! Price: ${targetPrice}, Qty: ${matchedQty}, Incoming: ${order.id}, Resting: ${restingOrder.id}`,
+      );
+
+      const updatedIncomingOrder = {
+        ...order,
+        remainingQuantity: order.remainingQuantity - matchedQty,
+      };
+      const updatedRestingOrder = {
+        ...restingOrder,
+        remainingQuantity: restingOrder.remainingQuantity - matchedQty,
+      };
+
+      await this.updateOrderInDB(
+        updatedIncomingOrder,
+        updatedRestingOrder,
+        matchedQty,
+        targetPrice,
+      );
+
+      orderBook.lastTradePrice = targetPrice;
+      await this.prisma.symbol.update({
+        where: {
+          symbol: order.symbol,
+        },
+        data: {
+          lastTradePrice: targetPrice,
+        },
+      });
+
+      this.logger.log(
+        `Updated last trade price for ${order.symbol}: ${targetPrice}`,
+      );
+
+      order.remainingQuantity -= matchedQty;
+      restingOrder.remainingQuantity -= matchedQty;
+
+      if (restingOrder.remainingQuantity === 0) {
+        targetSide.removeOrderMap(restingOrder.id);
+        targetSide.levelMap.get(targetPrice).removeHeadNode();
+        this.logger.log('Removed ordermap and headnode');
+
+        if (!targetSide.levelMap.get(targetPrice)?.head) {
+          targetSide.levelMap.delete(targetPrice);
+          targetSide.priceLevels.shift();
+          this.logger.log('Removed levelmap and priceLevel for that price');
+        }
+      }
+      this.logOrderBookState(order.symbol, 'AFTER MATCHING');
+    }
+
+    await this.AddOrRemoveOrder(order);
+
+    this.logger.log(`Finished matching for order ${order.id}`);
+  }
+}
