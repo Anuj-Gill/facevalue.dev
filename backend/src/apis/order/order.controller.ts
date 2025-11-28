@@ -44,9 +44,15 @@ export class OrderController {
       Logger.error(`Error processing order for user ${req['user']?.sub}: ${err.message}`, err.stack);
       Sentry.captureException(err);
 
+      // Return the actual error message for validation errors
+      const message = err.message || 'There was a problem processing your request.';
+      const statusCode = message.includes('Insufficient') || message.includes('invalid') 
+        ? HttpStatus.BAD_REQUEST 
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+
       throw new HttpException(
-        'There was a problem processing your request. Please try again after some time.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        { message, statusCode },
+        statusCode,
       );
     }
   }

@@ -1,10 +1,25 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { usePriceStream } from '@/hooks/usePriceStream';
-import { ArrowLeft, TrendingUp, Activity } from 'lucide-react';
+import { useUserStore, useHoldingsStore } from '@/stores';
+import { orderApi } from '@/lib/api';
+import { toast } from 'sonner';
+import { 
+  ArrowLeft, 
+  TrendingUp, 
+  Activity, 
+  ArrowUpIcon, 
+  ArrowDownIcon,
+  AlertCircle,
+  Wallet,
+  Briefcase
+} from 'lucide-react';
 import Link from 'next/link';
 
 interface PricePoint {
@@ -12,9 +27,25 @@ interface PricePoint {
   price: number;
 }
 
+// Format currency from cents to dollars
+const formatCurrency = (cents: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  }).format(cents / 100);
+};
+
+const formatPrice = (price: number | undefined) => {
+  if (price === undefined) return '---';
+  return (price / 100).toFixed(2);
+};
+
 export default function SymbolPage({ params }: { params: Promise<{ symbol: string }> }) {
   const resolvedParams = use(params);
   const symbol = resolvedParams.symbol;
+  
+  // State
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
   const [orderType, setOrderType] = useState<'limit' | 'market'>('limit');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
@@ -22,7 +53,16 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
   const [price, setPrice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Stores
+  const { user, fetchUser } = useUserStore();
+  const { holdings, fetchHoldings, getHoldingBySymbol } = useHoldingsStore();
+  
+  // Price stream
   const { prices, lastUpdate, isConnected } = usePriceStream({ symbol });
+  const currentPrice = prices.get(symbol);
+
+  // Get holding for this symbol
+  const holding = getHoldingBySymbol(symbol);
 
   // Update price history when new prices come in
   useEffect(() => {
@@ -30,19 +70,58 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
       setPriceHistory((prev) => [
         ...prev,
         { time: lastUpdate.timestamp, price: lastUpdate.price }
-      ].slice(-50)); // Keep last 50 points
+      ].slice(-50));
     }
   }, [lastUpdate, symbol]);
 
-  const currentPrice = prices.get(symbol);
+  // Auto-fill price with current market price for limit orders
+  useEffect(() => {
+    if (currentPrice && !price && orderType === 'limit') {
+      setPrice((currentPrice / 100).toFixed(2));
+    }
+  }, [currentPrice, orderType]);
 
-  const formatPrice = (price: number | undefined) => {
-    if (price === undefined) return '---';
-    return (price / 100).toFixed(2);
-  };
+  // Calculate order value and validation
+  const orderValidation = useMemo(() => {
+    const qty = parseInt(quantity) || 0;
+    const priceInCents = orderType === 'limit' 
+      ? Math.round(parseFloat(price || '0') * 100)
+      : currentPrice || 0;
+    const orderValue = qty * priceInCents;
+    
+    if (side === 'buy') {
+      const walletBalance = user?.walletBalance || 0;
+      const hasInsufficientFunds = orderValue > walletBalance;
+      return {
+        orderValue,
+        isValid: qty > 0 && priceInCents > 0 && !hasInsufficientFunds,
+        error: hasInsufficientFunds 
+          ? `Insufficient funds. Need ${formatCurrency(orderValue)}, have ${formatCurrency(walletBalance)}`
+          : null,
+        available: walletBalance,
+      };
+    } else {
+      const holdingQty = holding?.quantity || 0;
+      const hasInsufficientHoldings = qty > holdingQty;
+      return {
+        orderValue,
+        isValid: qty > 0 && priceInCents > 0 && !hasInsufficientHoldings,
+        error: hasInsufficientHoldings
+          ? `Insufficient holdings. Have ${holdingQty} shares, trying to sell ${qty}`
+          : null,
+        available: holdingQty,
+      };
+    }
+  }, [quantity, price, orderType, side, currentPrice, user?.walletBalance, holding?.quantity]);
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!orderValidation.isValid) {
+      toast.error(orderValidation.error || 'Invalid order');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -51,49 +130,56 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
         side,
         type: orderType,
         quantity: parseInt(quantity),
-        ...(orderType === 'limit' && { price: Math.round(parseFloat(price) * 100) }) // Convert to cents
+        ...(orderType === 'limit' && { price: Math.round(parseFloat(price) * 100) })
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Send cookies with request
-        body: JSON.stringify(orderData)
-      });
-
-      if (response.ok) {
-        // alert('Order placed successfully!');
-        setQuantity('');
-        setPrice('');
-      } else {
-        const error = await response.json();
-        alert(`Order failed: ${error.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Order submission error:', error);
-      alert('Failed to place order');
+      await orderApi.create(orderData);
+      
+      toast.success('Order placed successfully!');
+      setQuantity('');
+      setPrice('');
+      
+      // Refresh user and holdings data
+      fetchUser();
+      fetchHoldings();
+      
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to place order');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Calculate live P&L for holdings
+  const livePL = holding && currentPrice
+    ? holding.quantity * (currentPrice - holding.avgPrice)
+    : 0;
+  const livePLPercent = holding && currentPrice
+    ? ((currentPrice - holding.avgPrice) / holding.avgPrice) * 100
+    : 0;
+
   return (
-    <div className="container mx-auto p-8">
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
+    <div className="container mx-auto p-6">
+      {/* Back Link */}
+      <Link 
+        href="/dashboard" 
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+      >
         <ArrowLeft className="h-4 w-4" />
         Back to Dashboard
       </Link>
 
+      {/* Symbol Header */}
       <div className="mb-6">
-        <h1 className="text-4xl font-bold mb-2">{symbol}</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-4xl font-bold">{symbol}</h1>
+          <Badge variant="outline" className={isConnected ? 'text-green-500 border-green-500' : 'text-yellow-500 border-yellow-500'}>
+            <span className={`w-2 h-2 rounded-full mr-1 ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
+            {isConnected ? 'Live' : 'Connecting...'}
+          </Badge>
+        </div>
         <div className="flex items-center gap-4">
           <div className="text-3xl font-bold">${formatPrice(currentPrice)}</div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Activity className="h-4 w-4" />
-            <span>{isConnected ? 'Live' : 'Disconnected'}</span>
-          </div>
         </div>
       </div>
 
@@ -111,24 +197,22 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
             <div className="h-64 relative">
               {priceHistory.length === 0 ? (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  <Activity className="h-6 w-6 mr-2 animate-pulse" />
                   Waiting for price updates...
                 </div>
               ) : (
                 <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  {/* Calculate min/max for scaling */}
                   {(() => {
                     const maxPrice = Math.max(...priceHistory.map(p => p.price));
                     const minPrice = Math.min(...priceHistory.map(p => p.price));
                     const range = maxPrice - minPrice || 1;
                     
-                    // Create path points
                     const points = priceHistory.map((point, idx) => {
                       const x = (idx / (priceHistory.length - 1)) * 100;
                       const y = 100 - ((point.price - minPrice) / range) * 100;
                       return `${x},${y}`;
                     }).join(' ');
 
-                    // Create area path
                     const areaPath = `M 0,100 L ${priceHistory.map((point, idx) => {
                       const x = (idx / (priceHistory.length - 1)) * 100;
                       const y = 100 - ((point.price - minPrice) / range) * 100;
@@ -137,21 +221,13 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
 
                     return (
                       <>
-                        {/* Gradient fill under line */}
                         <defs>
                           <linearGradient id="priceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                             <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
                             <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
                           </linearGradient>
                         </defs>
-                        
-                        {/* Area under the line */}
-                        <path
-                          d={areaPath}
-                          fill="url(#priceGradient)"
-                        />
-                        
-                        {/* The line itself */}
+                        <path d={areaPath} fill="url(#priceGradient)" />
                         <polyline
                           points={points}
                           fill="none"
@@ -168,96 +244,174 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
           </CardContent>
         </Card>
 
-        {/* Order Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Place Order</CardTitle>
-            <CardDescription>Buy or sell {symbol}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmitOrder} className="space-y-4">
-              {/* Side Selection */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={side === 'buy' ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setSide('buy')}
-                >
-                  Buy
-                </Button>
-                <Button
-                  type="button"
-                  variant={side === 'sell' ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setSide('sell')}
-                >
-                  Sell
-                </Button>
-              </div>
+        {/* Order Form & Holdings */}
+        <div className="space-y-6">
+          {/* Holdings Card */}
+          {holding && holding.quantity > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Briefcase className="h-5 w-5" />
+                  Your Position
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Shares</span>
+                  <span className="font-medium">{holding.quantity}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Avg. Price</span>
+                  <span className="font-medium">{formatCurrency(holding.avgPrice)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Current Value</span>
+                  <span className="font-medium">
+                    {currentPrice ? formatCurrency(holding.quantity * currentPrice) : '---'}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">P&L</span>
+                  <span className={`font-medium flex items-center gap-1 ${
+                    livePL >= 0 ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {livePL >= 0 ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                    {formatCurrency(Math.abs(livePL))}
+                    <span className="text-xs">
+                      ({livePLPercent >= 0 ? '+' : ''}{livePLPercent.toFixed(2)}%)
+                    </span>
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-              {/* Order Type */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={orderType === 'limit' ? 'default' : 'outline'}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setOrderType('limit')}
-                >
-                  Limit
-                </Button>
-                <Button
-                  type="button"
-                  variant={orderType === 'market' ? 'default' : 'outline'}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setOrderType('market')}
-                >
-                  Market
-                </Button>
-              </div>
+          {/* Order Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Place Order</CardTitle>
+              <CardDescription>Buy or sell {symbol}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmitOrder} className="space-y-4">
+                {/* Side Selection */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={side === 'buy' ? 'default' : 'outline'}
+                    className={`flex-1 ${side === 'buy' ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                    onClick={() => setSide('buy')}
+                  >
+                    Buy
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={side === 'sell' ? 'default' : 'outline'}
+                    className={`flex-1 ${side === 'sell' ? 'bg-red-600 hover:bg-red-700' : ''}`}
+                    onClick={() => setSide('sell')}
+                  >
+                    Sell
+                  </Button>
+                </div>
 
-              {/* Quantity */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Quantity</label>
-                <input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md"
-                  placeholder="Enter quantity"
-                  required
-                  min="1"
-                />
-              </div>
+                {/* Order Type */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={orderType === 'limit' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setOrderType('limit')}
+                  >
+                    Limit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={orderType === 'market' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setOrderType('market')}
+                  >
+                    Market
+                  </Button>
+                </div>
 
-              {/* Price (only for limit orders) */}
-              {orderType === 'limit' && (
+                {/* Quantity */}
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Price ($)</label>
-                  <input
+                  <label className="text-sm font-medium mb-2 block">Quantity</label>
+                  <Input
                     type="number"
-                    step="0.01"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md"
-                    placeholder="Enter price"
-                    required
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    placeholder="Enter quantity"
+                    min="1"
                   />
                 </div>
-              )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Placing Order...' : `Place ${side.toUpperCase()} Order`}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                {/* Price (only for limit orders) */}
+                {orderType === 'limit' && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Price ($)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="Enter price"
+                    />
+                  </div>
+                )}
+
+                {/* Order Summary */}
+                <div className="bg-muted rounded-md p-3 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Order Value</span>
+                    <span className="font-medium">
+                      {orderValidation.orderValue > 0 
+                        ? formatCurrency(orderValidation.orderValue) 
+                        : '---'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      {side === 'buy' ? <Wallet className="h-3 w-3" /> : <Briefcase className="h-3 w-3" />}
+                      {side === 'buy' ? 'Available' : 'Holdings'}
+                    </span>
+                    <span className="font-medium">
+                      {side === 'buy' 
+                        ? formatCurrency(orderValidation.available as number)
+                        : `${orderValidation.available} shares`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Validation Error */}
+                {orderValidation.error && (
+                  <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>{orderValidation.error}</span>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  className={`w-full ${
+                    side === 'buy' 
+                      ? 'bg-green-600 hover:bg-green-700' 
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                  disabled={isSubmitting || !orderValidation.isValid || !quantity}
+                >
+                  {isSubmitting 
+                    ? 'Placing Order...' 
+                    : `${side === 'buy' ? 'Buy' : 'Sell'} ${symbol}`}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

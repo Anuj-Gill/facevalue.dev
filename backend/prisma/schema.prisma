@@ -29,8 +29,14 @@ model User {
     provider      Provider
     avatarUrl     String?   @map("avatar_url")
     walletBalance Int       @map("wallet_balance") @default(100000)
+    role          Role      @default(user)
     
     @@map("users")
+}
+
+enum Role {
+  user
+  bot
 }
 
 enum Gender {

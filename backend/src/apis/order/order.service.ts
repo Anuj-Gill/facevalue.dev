@@ -3,7 +3,7 @@ import { PrismaService } from 'src/services/prisma.service';
 import { OrderDto } from './order.dto';
 import { BrokerService } from 'src/services/broker.service';
 import { symbols } from 'src/common/symbols.config';
-import { OrderType, Side, Symbols } from '@prisma/client';
+import { OrderType, Role, Side, Symbols } from '@prisma/client';
 import { HoldingsRepository } from 'src/repositories/Holdings.repository';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class OrderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly brokerService: BrokerService,
-    private readonly holdingsRepository: HoldingsRepository
+    private readonly holdingsRepository: HoldingsRepository,
   ) {}
 
   async createOrder(requestPayload: OrderDto, userId: string) {
@@ -26,12 +26,16 @@ export class OrderService {
       throw new Error('Order placed for invalid Symbol!');
     }
 
-    await this.validateOrder(requestPayload, userId);
+    const isorderByBot = await this.validateBotOrder(userId);
+
+    if (!isorderByBot) {
+      await this.validateOrder(requestPayload, userId);
+    }
 
     const symbolData = await this.prisma.symbol.findFirst({
       where: {
-        symbol: Symbols[symbol]
-      }
+        symbol: Symbols[symbol],
+      },
     });
 
     const order = await this.prisma.order.create({
@@ -46,7 +50,6 @@ export class OrderService {
       },
     });
 
-
     this.logger.log(`Order created in DB with ID: ${order.id}`);
 
     const orderDetails = {
@@ -55,7 +58,7 @@ export class OrderService {
       id: order.id,
       remainingQuantity: order.remainingQuantity,
       originalQuantity: quantity,
-      symbolId: symbolData.id
+      symbolId: symbolData.id,
     };
 
     this.logger.log(`Sending order to matching engine: ${order.id}`);
@@ -80,11 +83,26 @@ export class OrderService {
         throw new Error('Insufficient funds in users wallet');
       }
     } else {
-      const userHoldings = await this.holdingsRepository.userHoldings(userId, Symbols[order.symbol]) 
+      const userHoldings = await this.holdingsRepository.userHoldings(
+        userId,
+        Symbols[order.symbol],
+      );
 
       if (!userHoldings || userHoldings.quantity < order.quantity) {
         throw new Error('Insufficient quantity of symbol to sell');
       }
+    }
+  }
+
+  async validateBotOrder(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (user.role == Role.bot) {
+      return true;
     }
   }
 }

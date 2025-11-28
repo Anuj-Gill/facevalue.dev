@@ -425,14 +425,6 @@ export class BrokerService implements OnModuleInit {
       );
 
       orderBook.lastTradePrice = targetPrice;
-      await this.prisma.symbol.update({
-        where: {
-          symbol: Symbol[order.symbol],
-        },
-        data: {
-          lastTradePrice: targetPrice,
-        },
-      });
 
       this.logger.log(
         `Updated last trade price for ${order.symbol}: ${targetPrice}`,

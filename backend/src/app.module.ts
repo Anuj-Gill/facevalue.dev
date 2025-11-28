@@ -18,6 +18,8 @@ import { MarketDataController } from './apis/market-data/market-data.controller'
 import { BotOrderController } from './apis/bot-order/bot-order.controller';
 import { TradeService } from './services/trade.service';
 import { HoldingsRepository } from './repositories/Holdings.repository';
+import { UserController } from './apis/user/user.controller';
+import { UserService } from './apis/user/user.service';
 
 @Module({
   imports: [
@@ -28,7 +30,7 @@ import { HoldingsRepository } from './repositories/Holdings.repository';
     }),
     EventEmitterModule.forRoot(),
   ],
-  controllers: [AppController, OAuthController, OrderController, MarketDataController, BotOrderController],
+  controllers: [AppController, OAuthController, OrderController, MarketDataController, BotOrderController, UserController],
   providers: [
     {
       provide: APP_FILTER,
@@ -42,7 +44,8 @@ import { HoldingsRepository } from './repositories/Holdings.repository';
     OrderService,
     BrokerService,
     TradeService,
-    HoldingsRepository
+    HoldingsRepository,
+    UserService,
   ],
 })
 export class AppModule {}
