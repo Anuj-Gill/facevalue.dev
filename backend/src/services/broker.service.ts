@@ -1,18 +1,20 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Side, OrderType, OrderStatus } from '@prisma/client';
+import { Side, OrderType, OrderStatus, Symbols } from '@prisma/client';
 import { symbols } from 'src/common/symbols.config';
 import { PrismaService } from './prisma.service';
+import { TradeService } from './trade.service';
 
-interface Order {
+export interface Order {
   id: string;
   userId: string;
   symbol: string;
+  symbolId?: string;
   side: Side;
   type: OrderType;
   price?: number;
   originalQuantity: number;
-  remainingQuantity: number
+  remainingQuantity: number;
 }
 
 interface OrderLocation {
@@ -20,7 +22,7 @@ interface OrderLocation {
   node: ListNode;
 }
 
-export class ListNode {
+class ListNode {
   order: Order;
   next: ListNode | null;
   prev: ListNode | null;
@@ -32,7 +34,7 @@ export class ListNode {
   }
 }
 
-export class LinkedList {
+class LinkedList {
   head: ListNode | null;
   tail: ListNode | null;
   length: number;
@@ -41,7 +43,6 @@ export class LinkedList {
     ((this.head = null), (this.tail = null), (this.length = 0));
   }
 
-  //TODO: define required methods for the linked list
   addNodeToTail(node: ListNode) {
     if (!this.head) {
       this.head = node;
@@ -73,7 +74,7 @@ export class LinkedList {
   }
 }
 
-export class OrderBookSide {
+class OrderBookSide {
   isBid: boolean;
   priceLevels: number[];
   levelMap: Map<number, LinkedList>;
@@ -123,18 +124,18 @@ export class OrderBookSide {
   }
 }
 
-export class OrderBook {
+class OrderBook {
   symbol: string;
   bids: OrderBookSide;
   asks: OrderBookSide;
-  lastTradePrice?: number;
+  lastTradePrice?: number | null;
 
   constructor(symbol: string) {
     this.symbol = symbol;
     this.bids = new OrderBookSide(true);
     this.asks = new OrderBookSide(false);
     //this is to be fetched from db, and then will be passed from the onModuleInit only from the BrokerService. Hardecoding to 120.00 for now
-    this.lastTradePrice = 12000;
+    this.lastTradePrice = this.lastTradePrice;
   }
 }
 
@@ -146,6 +147,7 @@ export class BrokerService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly tradeService: TradeService,
   ) {}
 
   async onModuleInit() {
@@ -155,7 +157,6 @@ export class BrokerService implements OnModuleInit {
     symbols.forEach((symbol) => {
       this.orderBooks.set(symbol, new OrderBook(symbol));
     });
-    //Insert open and partial order's into their order book's
     const pendingOrders = await this.prisma.order.findMany({
       where: {
         AND: [
@@ -166,15 +167,15 @@ export class BrokerService implements OnModuleInit {
           },
           {
             status: {
-              in: [OrderStatus.open, OrderStatus.partial]
-            }
-          }
+              in: [OrderStatus.open, OrderStatus.partial],
+            },
+          },
         ],
       },
     });
     pendingOrders.forEach((order) => {
       this.handleLimitOrder(order);
-    })
+    });
     this.logger.log('Order books initialized successfully');
   }
 
@@ -240,52 +241,6 @@ export class BrokerService implements OnModuleInit {
     return orders;
   }
 
-  async updateOrderInDB(
-    buyOrder: Order,
-    sellOrder: Order,
-    matchedQty: number,
-    tradePrice: number,
-  ) {
-    this.logger.log(
-      `Updating orders in DB - Buy: ${buyOrder.id}, Sell: ${sellOrder.id}, Qty: ${matchedQty}, Price: ${tradePrice}`,
-    );
-    await this.prisma.$transaction([
-      this.prisma.order.update({
-        where: {
-          id: buyOrder.id,
-        },
-        data: {
-          remainingQuantity: buyOrder.remainingQuantity,
-          status:
-            buyOrder.remainingQuantity > 0
-              ? OrderStatus.partial
-              : OrderStatus.filled,
-        },
-      }),
-      this.prisma.order.update({
-        where: {
-          id: sellOrder.id,
-        },
-        data: {
-          remainingQuantity: sellOrder.remainingQuantity,
-          status:
-            sellOrder.remainingQuantity > 0
-              ? OrderStatus.partial
-              : OrderStatus.filled,
-        },
-      }),
-      this.prisma.trade.create({
-        data: {
-          symbol: buyOrder.symbol,
-          buyOrderId: buyOrder.id,
-          sellOrderId: sellOrder.id,
-          price: tradePrice,
-          quantity: matchedQty,
-        },
-      }),
-    ]);
-  }
-
   async handleLimitOrderMatching(order: Order) {
     this.logger.log(
       `Starting matching for order: ${order.id}, Symbol: ${order.symbol}, Side: ${order.side}, Type: ${order.type}, Price: ${order.price}, Qty: ${order.remainingQuantity}`,
@@ -327,24 +282,22 @@ export class BrokerService implements OnModuleInit {
       const updatedRestingOrder = {
         ...restingOrder,
         remainingQuantity: restingOrder.remainingQuantity - matchedQty,
+        symbolId: order.symbolId,
       };
 
-      await this.updateOrderInDB(
-        updatedIncomingOrder,
-        updatedRestingOrder,
+      const [buyOrder, sellOrder] =
+        order.side == Side.buy
+          ? [updatedIncomingOrder, updatedRestingOrder]
+          : [updatedRestingOrder, updatedIncomingOrder];
+
+      await this.tradeService.TradeSettlement(
+        buyOrder,
+        sellOrder,
         matchedQty,
         priceToCompare,
       );
 
       orderBook.lastTradePrice = priceToCompare;
-      await this.prisma.symbol.update({
-        where: {
-          symbol: order.symbol,
-        },
-        data: {
-          lastTradePrice: priceToCompare,
-        },
-      });
 
       this.logger.log(
         `Updated last trade price for ${order.symbol}: ${priceToCompare}`,
@@ -357,7 +310,9 @@ export class BrokerService implements OnModuleInit {
         quantity: matchedQty,
         timestamp: Date.now(),
       };
-      this.logger.log(`🚀 Emitting price.update event: ${JSON.stringify(eventPayload)}`);
+      this.logger.log(
+        `🚀 Emitting price.update event: ${JSON.stringify(eventPayload)}`,
+      );
       this.eventEmitter.emit('price.update', eventPayload);
 
       order.remainingQuantity -= matchedQty;
@@ -457,9 +412,14 @@ export class BrokerService implements OnModuleInit {
         remainingQuantity: restingOrder.remainingQuantity - matchedQty,
       };
 
-      await this.updateOrderInDB(
-        updatedIncomingOrder,
-        updatedRestingOrder,
+      const [buyOrder, sellOrder] =
+        order.side == Side.buy
+          ? [updatedIncomingOrder, updatedRestingOrder]
+          : [updatedRestingOrder, updatedIncomingOrder];
+
+      await this.tradeService.TradeSettlement(
+        buyOrder,
+        sellOrder,
         matchedQty,
         targetPrice,
       );
@@ -467,7 +427,7 @@ export class BrokerService implements OnModuleInit {
       orderBook.lastTradePrice = targetPrice;
       await this.prisma.symbol.update({
         where: {
-          symbol: order.symbol,
+          symbol: Symbol[order.symbol],
         },
         data: {
           lastTradePrice: targetPrice,
@@ -485,7 +445,9 @@ export class BrokerService implements OnModuleInit {
         quantity: matchedQty,
         timestamp: Date.now(),
       };
-      this.logger.log(`🚀 Emitting price.update event: ${JSON.stringify(eventPayload)}`);
+      this.logger.log(
+        `🚀 Emitting price.update event: ${JSON.stringify(eventPayload)}`,
+      );
       this.eventEmitter.emit('price.update', eventPayload);
 
       order.remainingQuantity -= matchedQty;
