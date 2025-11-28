@@ -16,6 +16,8 @@ import { OrderService } from './apis/order/order.service';
 import { BrokerService } from './services/broker.service';
 import { MarketDataController } from './apis/market-data/market-data.controller';
 import { BotOrderController } from './apis/bot-order/bot-order.controller';
+import { TradeService } from './services/trade.service';
+import { HoldingsRepository } from './repositories/Holdings.repository';
 
 @Module({
   imports: [
@@ -38,7 +40,9 @@ import { BotOrderController } from './apis/bot-order/bot-order.controller';
     JwtService,
     PrismaService,
     OrderService,
-    BrokerService
+    BrokerService,
+    TradeService,
+    HoldingsRepository
   ],
 })
 export class AppModule {}

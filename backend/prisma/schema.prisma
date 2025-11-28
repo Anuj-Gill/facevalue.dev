@@ -28,7 +28,7 @@ model User {
     isDeleted     Boolean?  @default(false) @map("is_deleted")
     provider      Provider
     avatarUrl     String?   @map("avatar_url")
-    walletBalance Int       @map("wallet_balance")
+    walletBalance Int       @map("wallet_balance") @default(100000)
     
     @@map("users")
 }
@@ -81,7 +81,7 @@ enum OrderStatus {
 
 model Trade {
   id           String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  symbol       String
+  symbol       Symbols
   buyOrderId   String   @map("buy_order_id") @db.Uuid
   sellOrderId  String   @map("sell_order_id") @db.Uuid
   price        Int
@@ -97,12 +97,18 @@ model Trade {
 
 model Symbol {
   id           String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  symbol       String   @unique
+  symbol       Symbols   @unique
   lastTradePrice Int    @map("last_trade_price")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @default(now()) @map("updated_at")
 
+  holdings     Holdings[]
   @@map("symbols")
+}
+
+enum Symbols {
+  MEME1
+  MEME2
 }
 
 model Holdings {
@@ -110,5 +116,10 @@ model Holdings {
   userId       String   @db.Uuid @map("user_id")
   symbolId     String   @db.Uuid @map("symbol_id")
   quantity     Int 
-  avgPrice     Int 
+  avgPrice     Int      @map("avg_price")
+
+  symbol      Symbol    @relation(fields: [symbolId], references: [id])
+
+  @@map("holdings")
+  @@unique([userId, symbolId])
 }
