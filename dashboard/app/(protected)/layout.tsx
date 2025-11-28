@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
+import { AppNavbar } from '@/components/layout/Navbar';
 import { Toaster } from '@/components/ui/sonner';
 import { useUserStore, useHoldingsStore } from '@/stores';
 
@@ -21,7 +21,7 @@ export default function ProtectedLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <AppNavbar />
       <main>{children}</main>
       <Toaster position="top-right" richColors />
     </div>

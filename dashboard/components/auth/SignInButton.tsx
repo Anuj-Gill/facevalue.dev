@@ -1,7 +1,6 @@
 'use client';
 
 import { supabaseClient } from "@/lib/supabase/client";
-import { access } from "fs";
 
 export default function SignInButton() {
   async function handleSignIn() {
