@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LogOut } from 'lucide-react';
+import { LogOut, Github, Star } from 'lucide-react';
 import {
   Navbar,
   NavBody,
@@ -129,7 +129,7 @@ export function AppNavbar() {
           href="/dashboard"
           className="relative z-20 flex items-center gap-2 px-2 py-1"
         >
-          <div className="bg-orange-500 text-white flex size-8 items-center justify-center rounded-xl">
+          <div className="bg-orange-500 text-white flex size-8 items-center justify-center rounded-full">
             <span className="text-sm font-bold">M</span>
           </div>
           <span className="font-semibold text-white">MemeExchange</span>
@@ -138,8 +138,22 @@ export function AppNavbar() {
         {/* Nav Items */}
         <NavItems items={navItems} />
 
-        {/* Right Side - Wallet Balance & Profile */}
+        {/* Right Side - GitHub, Wallet Balance & Profile */}
         <div className="relative z-20 flex items-center gap-3">
+          {/* GitHub Link */}
+          <a
+            href="https://github.com/anuj-xcode/meme-stock-exchange"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+          >
+            <Github className="size-4 text-gray-400 group-hover:text-white transition-colors" />
+            <div className="flex items-center gap-1">
+              <Star className="size-3 text-amber-400" />
+              <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors">Star</span>
+            </div>
+          </a>
+
           {/* Wallet Balance Pill */}
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
             <GoldCoin className="size-5" />
@@ -194,7 +208,7 @@ export function AppNavbar() {
             href="/dashboard"
             className="flex items-center gap-2"
           >
-            <div className="bg-orange-500 text-white flex size-8 items-center justify-center rounded-xl">
+            <div className="bg-orange-500 text-white flex size-8 items-center justify-center rounded-full">
               <span className="text-sm font-bold">M</span>
             </div>
             <span className="font-semibold text-white">MemeExchange</span>

@@ -159,7 +159,7 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
     : 0;
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 mt-24">
       {/* Back Link */}
       <Link 
         href="/dashboard" 

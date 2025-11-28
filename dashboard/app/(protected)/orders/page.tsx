@@ -6,21 +6,78 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOrdersStore } from '@/stores';
 import Link from 'next/link';
-import { ClipboardList, RefreshCw } from 'lucide-react';
+import { 
+  ClipboardList, 
+  RefreshCw, 
+  TrendingUp,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  ExternalLink,
+  ArrowUpRight,
+  ArrowDownRight
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Format currency from cents to dollars
-const formatCurrency = (cents: number | null) => {
+// Format coins (stored in cents, display as coins)
+const formatCoins = (cents: number | null) => {
   if (cents === null) return 'Market';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  return (cents / 100).toLocaleString('en-US', {
     minimumFractionDigits: 2,
-  }).format(cents / 100);
+    maximumFractionDigits: 2,
+  });
 };
+
+// Gold coin SVG component
+const GoldCoin = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 100 100"
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <linearGradient id="coinGradientOrders" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FFD700" />
+        <stop offset="50%" stopColor="#FFB300" />
+        <stop offset="100%" stopColor="#FF8F00" />
+      </linearGradient>
+      <radialGradient id="coinShadowOrders" cx="50%" cy="50%" r="50%">
+        <stop offset="70%" stopColor="#FFD700" stopOpacity="1" />
+        <stop offset="100%" stopColor="#B8860B" stopOpacity="1" />
+      </radialGradient>
+    </defs>
+    <ellipse cx="50" cy="52" rx="42" ry="42" fill="#B8860B" />
+    <circle cx="50" cy="50" r="42" fill="url(#coinShadowOrders)" />
+    <circle cx="50" cy="50" r="38" fill="url(#coinGradientOrders)" />
+    <ellipse cx="35" cy="35" rx="15" ry="12" fill="rgba(255,255,255,0.3)" />
+    <circle cx="50" cy="50" r="30" fill="none" stroke="#B8860B" strokeWidth="2" />
+    <text x="50" y="58" textAnchor="middle" fontSize="28" fontWeight="bold" fill="#B8860B" fontFamily="Arial, sans-serif">M</text>
+  </svg>
+);
 
 // Format date
 const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+  });
+};
+
+const formatFullDate = (dateString: string) => {
   return new Date(dateString).toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -29,27 +86,40 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// Get status badge variant
-const getStatusBadge = (status: string) => {
+// Get status info
+const getStatusInfo = (status: string) => {
   switch (status) {
     case 'filled':
-      return <Badge className="bg-green-500">Filled</Badge>;
+      return {
+        icon: CheckCircle2,
+        label: 'Filled',
+        className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+      };
     case 'partial':
-      return <Badge className="bg-yellow-500">Partial</Badge>;
+      return {
+        icon: AlertCircle,
+        label: 'Partial',
+        className: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+      };
     case 'open':
-      return <Badge variant="outline">Open</Badge>;
+      return {
+        icon: Clock,
+        label: 'Open',
+        className: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      };
     case 'cancelled':
-      return <Badge variant="destructive">Cancelled</Badge>;
+      return {
+        icon: XCircle,
+        label: 'Cancelled',
+        className: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+      };
     default:
-      return <Badge variant="secondary">{status}</Badge>;
+      return {
+        icon: AlertCircle,
+        label: status,
+        className: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+      };
   }
-};
-
-// Get side badge
-const getSideBadge = (side: string) => {
-  return side === 'buy' 
-    ? <Badge className="bg-green-500/20 text-green-600 hover:bg-green-500/20">BUY</Badge>
-    : <Badge className="bg-red-500/20 text-red-600 hover:bg-red-500/20">SELL</Badge>;
 };
 
 export default function OrdersPage() {
@@ -59,114 +129,247 @@ export default function OrdersPage() {
     fetchOrders();
   }, [fetchOrders]);
 
+  // Calculate order statistics
+  const orderStats = orders.reduce((acc, order) => {
+    if (order.status === 'filled') acc.filled++;
+    else if (order.status === 'open') acc.open++;
+    else if (order.status === 'cancelled') acc.cancelled++;
+    
+    if (order.side === 'buy') acc.buys++;
+    else acc.sells++;
+    
+    return acc;
+  }, { filled: 0, open: 0, cancelled: 0, buys: 0, sells: 0 });
+
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 mt-24">
         <div className="mb-8">
           <Skeleton className="h-8 w-48 mb-2" />
           <Skeleton className="h-4 w-64" />
         </div>
-        <Skeleton className="h-96" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
+          ))}
+        </div>
+        <Skeleton className="h-96 rounded-2xl" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 mt-24">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            <ClipboardList className="h-8 w-8" />
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-3 text-white">
+            <div className="p-2 bg-orange-500/20 rounded-xl">
+              <ClipboardList className="h-7 w-7 text-orange-500" />
+            </div>
             Order History
           </h1>
-          <p className="text-muted-foreground">
-            View all your past and pending orders
+          <p className="text-gray-500">
+            Track all your trading activity
           </p>
         </div>
         <Button 
           variant="outline" 
           size="sm"
           onClick={() => fetchOrders()}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 border-white/10 hover:bg-white/5 rounded-xl"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
       </div>
 
+      {/* Order Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <Card className="bg-card border-white/10 rounded-2xl">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Total Orders</p>
+                <p className="text-2xl font-bold text-white">{orders.length}</p>
+              </div>
+              <div className="p-2 bg-white/5 rounded-xl">
+                <ClipboardList className="h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-white/10 rounded-2xl">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Filled</p>
+                <p className="text-2xl font-bold text-emerald-400">{orderStats.filled}</p>
+              </div>
+              <div className="p-2 bg-emerald-500/10 rounded-xl">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-white/10 rounded-2xl">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Open</p>
+                <p className="text-2xl font-bold text-blue-400">{orderStats.open}</p>
+              </div>
+              <div className="p-2 bg-blue-500/10 rounded-xl">
+                <Clock className="h-5 w-5 text-blue-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-white/10 rounded-2xl">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Buy / Sell</p>
+                <p className="text-2xl font-bold">
+                  <span className="text-emerald-400">{orderStats.buys}</span>
+                  <span className="text-gray-500 mx-1">/</span>
+                  <span className="text-red-400">{orderStats.sells}</span>
+                </p>
+              </div>
+              <div className="p-2 bg-white/5 rounded-xl">
+                <TrendingUp className="h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Orders Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Orders</CardTitle>
-          <CardDescription>
-            Showing last 50 orders
+      <Card className="bg-card border-white/10 rounded-2xl overflow-hidden">
+        <CardHeader className="border-b border-white/5">
+          <CardTitle className="text-white">Recent Orders</CardTitle>
+          <CardDescription className="text-gray-500">
+            Showing your last {orders.length} orders
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {orders.length === 0 ? (
-            <div className="text-center py-12">
-              <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No orders yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Place your first order to see it here
+            <div className="text-center py-16 px-6">
+              <div className="w-16 h-16 mx-auto mb-4 bg-white/5 rounded-full flex items-center justify-center">
+                <ClipboardList className="h-8 w-8 text-gray-500" />
+              </div>
+              <h3 className="text-lg font-medium mb-2 text-white">No orders yet</h3>
+              <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                Place your first order to start trading meme stocks
               </p>
               <Link 
                 href="/dashboard" 
-                className="inline-flex items-center gap-2 text-primary hover:underline"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors"
               >
-                Go to Dashboard
+                <TrendingUp className="h-4 w-4" />
+                Start Trading
               </Link>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Time</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Symbol</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Side</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Type</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Price</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Quantity</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Filled</th>
-                    <th className="text-center py-3 px-4 font-medium text-muted-foreground">Status</th>
+                  <tr className="border-b border-white/5 bg-white/[0.02]">
+                    <th className="text-left py-4 px-6 font-medium text-gray-400 text-sm">Time</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-400 text-sm">Asset</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-400 text-sm">Side</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-400 text-sm">Type</th>
+                    <th className="text-right py-4 px-6 font-medium text-gray-400 text-sm">Price</th>
+                    <th className="text-right py-4 px-6 font-medium text-gray-400 text-sm">Quantity</th>
+                    <th className="text-right py-4 px-6 font-medium text-gray-400 text-sm">Filled</th>
+                    <th className="text-center py-4 px-6 font-medium text-gray-400 text-sm">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-4 text-sm text-muted-foreground">
-                        {formatDate(order.createdAt)}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Link 
-                          href={`/symbol/${order.symbol}`}
-                          className="font-medium hover:text-primary"
-                        >
-                          {order.symbol}
-                        </Link>
-                      </td>
-                      <td className="py-3 px-4">
-                        {getSideBadge(order.side)}
-                      </td>
-                      <td className="py-3 px-4 capitalize text-sm">
-                        {order.type}
-                      </td>
-                      <td className="text-right py-3 px-4">
-                        {formatCurrency(order.price)}
-                      </td>
-                      <td className="text-right py-3 px-4">
-                        {order.originalQuantity}
-                      </td>
-                      <td className="text-right py-3 px-4">
-                        {order.originalQuantity - order.remainingQuantity} / {order.originalQuantity}
-                      </td>
-                      <td className="text-center py-3 px-4">
-                        {getStatusBadge(order.status)}
-                      </td>
-                    </tr>
-                  ))}
+                  {orders.map((order) => {
+                    const statusInfo = getStatusInfo(order.status);
+                    const StatusIcon = statusInfo.icon;
+                    const filledQty = order.originalQuantity - order.remainingQuantity;
+                    const fillPercent = (filledQty / order.originalQuantity) * 100;
+                    
+                    return (
+                      <tr key={order.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col">
+                            <span className="text-white text-sm">{formatDate(order.createdAt)}</span>
+                            <span className="text-gray-500 text-xs">{formatFullDate(order.createdAt)}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <Link 
+                            href={`/symbol/${order.symbol}`}
+                            className="flex items-center gap-3 group-hover:text-orange-400 transition-colors"
+                          >
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500/20 to-amber-500/10 flex items-center justify-center">
+                              <span className="font-bold text-sm text-orange-400">{order.symbol.charAt(0)}</span>
+                            </div>
+                            <span className="font-semibold text-white">{order.symbol}</span>
+                            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500" />
+                          </Link>
+                        </td>
+                        <td className="py-4 px-6">
+                          {order.side === 'buy' ? (
+                            <div className="flex items-center gap-1.5">
+                              <div className="p-1 rounded bg-emerald-500/20">
+                                <ArrowUpRight className="h-3 w-3 text-emerald-400" />
+                              </div>
+                              <span className="text-emerald-400 font-medium text-sm">BUY</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <div className="p-1 rounded bg-red-500/20">
+                                <ArrowDownRight className="h-3 w-3 text-red-400" />
+                              </div>
+                              <span className="text-red-400 font-medium text-sm">SELL</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-4 px-6">
+                          <Badge variant="outline" className="border-white/10 text-gray-400 capitalize">
+                            {order.type}
+                          </Badge>
+                        </td>
+                        <td className="text-right py-4 px-6">
+                          {order.price ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <GoldCoin className="size-4" />
+                              <span className="text-white">{formatCoins(order.price)}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500">Market</span>
+                          )}
+                        </td>
+                        <td className="text-right py-4 px-6 text-white">
+                          {order.originalQuantity}
+                        </td>
+                        <td className="text-right py-4 px-6">
+                          <div className="flex flex-col items-end">
+                            <span className="text-white">{filledQty} / {order.originalQuantity}</span>
+                            <div className="w-16 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
+                              <div 
+                                className="h-full bg-emerald-500 rounded-full transition-all"
+                                style={{ width: `${fillPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="text-center py-4 px-6">
+                          <Badge className={`${statusInfo.className} border gap-1`}>
+                            <StatusIcon className="h-3 w-3" />
+                            {statusInfo.label}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
