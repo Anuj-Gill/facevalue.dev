@@ -9,5 +9,7 @@ export interface EnvironmentVariables {
   CLIENT_URL: string;
   SENTRY_DSN: string;
   BACKEND_URL: string;
-  BOT_API_KEY: string
+  BOT_API_KEY: string;
+  UPSTASH_REDIS_REST_URL: string;
+  UPSTASH_REDIS_REST_TOKEN: string
 }

@@ -20,6 +20,8 @@ import { TradeService } from './services/trade.service';
 import { HoldingsRepository } from './repositories/Holdings.repository';
 import { UserController } from './apis/user/user.controller';
 import { UserService } from './apis/user/user.service';
+import { SuggestionsController } from './apis/suggestions/suggestions.controller';
+import { SuggestionsService } from './apis/suggestions/suggestions.service';
 
 @Module({
   imports: [
@@ -30,7 +32,7 @@ import { UserService } from './apis/user/user.service';
     }),
     EventEmitterModule.forRoot(),
   ],
-  controllers: [AppController, OAuthController, OrderController, MarketDataController, BotOrderController, UserController],
+  controllers: [AppController, OAuthController, OrderController, MarketDataController, BotOrderController, UserController, SuggestionsController],
   providers: [
     {
       provide: APP_FILTER,
@@ -46,6 +48,7 @@ import { UserService } from './apis/user/user.service';
     TradeService,
     HoldingsRepository,
     UserService,
+    SuggestionsService,
   ],
 })
 export class AppModule {}

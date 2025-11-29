@@ -20,7 +20,8 @@ import {
   Lightbulb,
   Flame,
   Zap,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -89,14 +90,25 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto p-6 mt-24">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-white">Market Overview</h1>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <ActivityIcon className="h-4 w-4" />
-          <span className={isConnected ? 'text-emerald-400' : 'text-amber-400'}>
-            {isConnected ? 'Live Market Data' : 'Connecting...'}
-          </span>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2 text-white">Market Overview</h1>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <ActivityIcon className="h-4 w-4" />
+            <span className={isConnected ? 'text-emerald-400' : 'text-amber-400'}>
+              {isConnected ? 'Live Market Data' : 'Connecting...'}
+            </span>
+          </div>
         </div>
+        
+        {/* Vote CEO Button */}
+        <Link
+          href="/suggestions"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 hover:from-orange-500/30 hover:to-amber-500/30 transition-all group"
+        >
+          <Sparkles className="size-4 text-orange-400 group-hover:text-orange-300 transition-colors" />
+          <span className="text-sm font-medium text-orange-400 group-hover:text-orange-300 transition-colors">Vote Next CEO Coin</span>
+        </Link>
       </div>
 
       {/* Main Layout: Stocks on Left, Portfolio on Right */}

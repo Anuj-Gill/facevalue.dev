@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/services/prisma.service';
 import { OrderDto } from './order.dto';
 import { BrokerService } from 'src/services/broker.service';
 import { symbols } from 'src/common/symbols.config';
-import { OrderType, Role, Side, Symbols } from '@prisma/client';
+import { OrderType, Side, Symbols } from '@prisma/client';
 import { HoldingsRepository } from 'src/repositories/Holdings.repository';
 
 @Injectable()
@@ -22,21 +22,16 @@ export class OrderService {
     );
     const { symbol, price, type, side, quantity } = requestPayload;
 
-    if (!Object.values(symbols).includes(symbol)) {
-      throw new Error('Order placed for invalid Symbol!');
-    }
-
-    const isorderByBot = await this.validateBotOrder(userId);
-
-    if (!isorderByBot) {
-      await this.validateOrder(requestPayload, userId);
-    }
+    this.validateSymbol(symbol);
+    await this.validateOrder(requestPayload, userId);
 
     const symbolData = await this.prisma.symbol.findFirst({
-      where: {
-        symbol: Symbols[symbol],
-      },
+      where: { symbol: Symbols[symbol] },
     });
+
+    if (!symbolData) {
+      throw new BadRequestException(`Symbol ${symbol} not found in database`);
+    }
 
     const order = await this.prisma.order.create({
       data: {
@@ -62,47 +57,59 @@ export class OrderService {
     };
 
     this.logger.log(`Sending order to matching engine: ${order.id}`);
-    if (type == OrderType.limit) {
-      await this.brokerService.handleLimitOrderMatching(orderDetails);
-    } else {
-      await this.brokerService.handleMarketOrderMatching(orderDetails);
-    }
+
+    await this.brokerService.handleOrderMatching(orderDetails);
+    
+
     this.logger.log(`Order processing completed: ${order.id}`);
   }
 
-  async validateOrder(order: OrderDto, userId: string) {
-    if (order.side == Side.buy) {
-      const orderValue = order.quantity * order.price;
-      const user = await this.prisma.user.findFirst({
-        where: {
-          id: userId,
-        },
-      });
-
-      if (user.walletBalance < orderValue) {
-        throw new Error('Insufficient funds in users wallet');
-      }
-    } else {
-      const userHoldings = await this.holdingsRepository.userHoldings(
-        userId,
-        Symbols[order.symbol],
-      );
-
-      if (!userHoldings || userHoldings.quantity < order.quantity) {
-        throw new Error('Insufficient quantity of symbol to sell');
-      }
+  private validateSymbol(symbol: string): void {
+    if (!Object.values(symbols).includes(symbol)) {
+      throw new BadRequestException('Order placed for invalid Symbol!');
     }
   }
 
-  async validateBotOrder(userId: string) {
+  private async validateOrder(order: OrderDto, userId: string): Promise<void> {
+    if (order.side === Side.buy) {
+      await this.validateBuyOrder(order, userId);
+    } else {
+      await this.validateSellOrder(order, userId);
+    }
+  }
+
+  private async validateBuyOrder(order: OrderDto, userId: string): Promise<void> {
+    const orderValue = order.quantity * order.price;
+
     const user = await this.prisma.user.findFirst({
-      where: {
-        id: userId,
-      },
+      where: { id: userId },
     });
 
-    if (user.role == Role.bot) {
-      return true;
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (user.walletBalance < orderValue) {
+      throw new BadRequestException(
+        `Insufficient funds. Required: ${orderValue}, Available: ${user.walletBalance}`,
+      );
+    }
+  }
+
+  private async validateSellOrder(order: OrderDto, userId: string): Promise<void> {
+    const userHoldings = await this.holdingsRepository.userHoldings(
+      userId,
+      Symbols[order.symbol],
+    );
+
+    if (!userHoldings) {
+      throw new BadRequestException(`You don't own any ${order.symbol} to sell`);
+    }
+
+    if (userHoldings.quantity < order.quantity) {
+      throw new BadRequestException(
+        `Insufficient holdings. Required: ${order.quantity}, Available: ${userHoldings.quantity}`,
+      );
     }
   }
 }
