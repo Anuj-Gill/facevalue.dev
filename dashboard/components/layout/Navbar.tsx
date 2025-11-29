@@ -130,9 +130,9 @@ export function AppNavbar() {
           className="relative z-20 flex items-center gap-2 px-2 py-1"
         >
           <div className="bg-orange-500 text-white flex size-8 items-center justify-center rounded-full">
-            <span className="text-sm font-bold">M</span>
+            <span className="text-sm font-bold">C</span>
           </div>
-          <span className="font-semibold text-white">MemeExchange</span>
+          <span className="font-semibold text-white">CEO Stock Exchange</span>
         </Link>
 
         {/* Nav Items */}
@@ -209,9 +209,9 @@ export function AppNavbar() {
             className="flex items-center gap-2"
           >
             <div className="bg-orange-500 text-white flex size-8 items-center justify-center rounded-full">
-              <span className="text-sm font-bold">M</span>
+              <span className="text-sm font-bold">C</span>
             </div>
-            <span className="font-semibold text-white">MemeExchange</span>
+            <span className="font-semibold text-white">CEO Stock Exchange</span>
           </Link>
 
           {/* Right side with wallet, avatar, and toggle */}

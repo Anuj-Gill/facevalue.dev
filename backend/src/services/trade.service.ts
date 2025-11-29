@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { Order } from './broker.service';
+import { Order } from './orderBook.service';
 import { OrderStatus, Role, Symbols } from '@prisma/client';
 
 @Injectable()

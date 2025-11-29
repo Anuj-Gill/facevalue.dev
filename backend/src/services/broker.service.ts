@@ -8,6 +8,7 @@ import { DoublyLinkedList, ListNode } from './dll.service';
 import { OrderBookSide } from './orderBookSide.service';
 import { OrderBook } from './orderBook.service';
 import { Order } from './orderBook.service';
+import { RedisService } from './redis.service';
 
 @Injectable()
 export class BrokerService implements OnModuleInit {
@@ -18,6 +19,7 @@ export class BrokerService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly tradeService: TradeService,
+    private readonly redisService: RedisService
   ) {}
 
   async onModuleInit() {
@@ -138,6 +140,8 @@ export class BrokerService implements OnModuleInit {
       );
 
       orderBook.lastTradePrice = priceToCompare;
+
+      await this.redisService.addPricePoint(order.symbol, priceToCompare);
 
       this.logger.log(
         `Updated last trade price for ${order.symbol}: ${priceToCompare}`,

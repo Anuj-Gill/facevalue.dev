@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HoverBorderGradient } from '@/components/ui/hover-border-gradient';
 import { usePriceStream } from '@/hooks/usePriceStream';
 import { useHoldingsStore, useUserStore } from '@/stores';
 import { SYMBOLS, STOCK_IMAGES, type Symbol } from '@/lib/constants';
@@ -102,12 +103,14 @@ export default function Dashboard() {
         </div>
         
         {/* Vote CEO Button */}
-        <Link
-          href="/suggestions"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 hover:from-orange-500/30 hover:to-amber-500/30 transition-all group"
-        >
-          <Sparkles className="size-4 text-orange-400 group-hover:text-orange-300 transition-colors" />
-          <span className="text-sm font-medium text-orange-400 group-hover:text-orange-300 transition-colors">Vote Next CEO Coin</span>
+        <Link href="/suggestions">
+          <HoverBorderGradient
+            containerClassName="rounded-full"
+            className="flex items-center gap-2 bg-black text-white px-4 py-2"
+          >
+            <Sparkles className="size-4 text-orange-400" />
+            <span className="text-sm font-medium">Vote Next CEO Stock</span>
+          </HoverBorderGradient>
         </Link>
       </div>
 
@@ -132,7 +135,7 @@ export default function Dashboard() {
               return (
                 <Link href={`/symbol/${symbol}`} key={symbol}>
                   <Card className="bg-card border-white/10 rounded-2xl hover:border-orange-500/30 transition-all cursor-pointer group">
-                    <CardContent className="p-5">
+                    <CardContent className="p-4">
                       {/* Header Row */}
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -147,7 +150,7 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <h3 className="font-semibold text-white group-hover:text-orange-400 transition-colors">{symbol}</h3>
-                            <p className="text-xs text-gray-500">Meme Stock</p>
+                            <p className="text-xs text-gray-500">CEO Stock</p>
                           </div>
                         </div>
                         {currentPrice !== undefined ? (
@@ -202,7 +205,7 @@ export default function Dashboard() {
 
           {/* Market Tips & Insights */}
           <Card className="bg-gradient-to-br from-orange-500/5 to-amber-500/5 border-orange-500/20 rounded-2xl mt-6">
-            <CardContent className="p-5">
+            <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="p-1.5 bg-orange-500/20 rounded-lg">
                   <Lightbulb className="size-4 text-orange-400" />
@@ -242,7 +245,7 @@ export default function Dashboard() {
 
           {/* Portfolio Value Card */}
           <Card className="bg-card border-white/10 rounded-2xl">
-            <CardContent className="p-5">
+            <CardContent className="p-4">
               <p className="text-xs text-gray-500 mb-1">Current Value</p>
               <div className="flex items-center gap-2 mb-4">
                 <GoldCoin className="size-6" />
@@ -253,14 +256,6 @@ export default function Dashboard() {
 
               {/* Stats Grid */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-white/5">
-                  <span className="text-sm text-gray-500">1D returns</span>
-                  <span className={`text-sm font-medium ${
-                    portfolioSummary.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'
-                  }`}>
-                    {portfolioSummary.totalPL >= 0 ? '+' : ''}{formatCoins(portfolioSummary.totalPL)} ({plPercent >= 0 ? '+' : ''}{plPercent.toFixed(2)}%)
-                  </span>
-                </div>
                 <div className="flex items-center justify-between py-2 border-b border-white/5">
                   <span className="text-sm text-gray-500">Total returns</span>
                   <span className={`text-sm font-medium ${
@@ -279,7 +274,7 @@ export default function Dashboard() {
 
           {/* Cash Balance Card */}
           <Card className="bg-card border-white/10 rounded-2xl">
-            <CardContent className="p-5">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/5 rounded-xl">
@@ -306,7 +301,7 @@ export default function Dashboard() {
 
           {/* Holdings List */}
           <Card className="bg-card border-white/10 rounded-2xl">
-            <CardHeader className="pb-2 px-5 pt-5">
+            <CardHeader className="pb-2 px-4 pt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/5 rounded-xl">
@@ -319,7 +314,7 @@ export default function Dashboard() {
                 </Link>
               </div>
             </CardHeader>
-            <CardContent className="px-5 pb-5">
+            <CardContent className="px-4 pb-4">
               {holdingsLoading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-12 w-full" />

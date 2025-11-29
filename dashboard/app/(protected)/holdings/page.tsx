@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoaderThree } from '@/components/ui/loader';
 import { useHoldingsStore, useUserStore } from '@/stores';
 import { usePriceStream } from '@/hooks/usePriceStream';
 import { STOCK_IMAGES, type Symbol } from '@/lib/constants';
@@ -81,17 +81,9 @@ export default function HoldingsPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 mt-24">
-        <div className="mb-8">
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-36 rounded-2xl" />
-          ))}
-        </div>
-        <Skeleton className="h-64 rounded-2xl" />
+      <div className="container mx-auto p-6 mt-24 flex flex-col items-center justify-center min-h-[60vh]">
+        <LoaderThree />
+        <p className="text-muted-foreground mt-4">Loading your portfolio...</p>
       </div>
     );
   }

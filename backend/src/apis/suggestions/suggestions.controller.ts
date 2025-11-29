@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Param,
+  Query,
   HttpStatus,
   Res,
   Req,
@@ -53,14 +54,20 @@ export class SuggestionsController {
   @Get()
   @SetMetadata('apiIdentifier', apiIdentifiers.order)
   @UseGuards(JWTGuard)
-  async getAllSuggestions(@Req() req: Request, @Res() res: Response) {
+  async getAllSuggestions(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
     try {
       const userId = req['user'].sub;
-      const suggestions = await this.suggestionsService.getAllSuggestions(userId);
+      const pageNum = parseInt(page) || 1;
+      const limitNum = parseInt(limit) || 10;
+      
+      const result = await this.suggestionsService.getAllSuggestions(userId, pageNum, limitNum);
 
-      return res.status(HttpStatus.OK).json({
-        data: suggestions,
-      });
+      return res.status(HttpStatus.OK).json(result);
     } catch (err) {
       Logger.error(`Error fetching suggestions: ${err.message}`, err.stack);
       Sentry.captureException(err);

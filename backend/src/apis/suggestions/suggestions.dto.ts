@@ -30,3 +30,17 @@ export interface SuggestionResponse {
   userVote: 'UP' | 'DOWN' | null;
   createdAt: Date;
 }
+
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface PaginatedSuggestionsResponse {
+  data: SuggestionResponse[];
+  pagination: PaginationInfo;
+}

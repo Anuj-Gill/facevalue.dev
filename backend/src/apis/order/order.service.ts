@@ -3,7 +3,7 @@ import { PrismaService } from 'src/services/prisma.service';
 import { OrderDto } from './order.dto';
 import { BrokerService } from 'src/services/broker.service';
 import { symbols } from 'src/common/symbols.config';
-import { OrderType, Side, Symbols } from '@prisma/client';
+import { OrderType, Role, Side, Symbols } from '@prisma/client';
 import { HoldingsRepository } from 'src/repositories/Holdings.repository';
 
 @Injectable()
@@ -23,7 +23,11 @@ export class OrderService {
     const { symbol, price, type, side, quantity } = requestPayload;
 
     this.validateSymbol(symbol);
-    await this.validateOrder(requestPayload, userId);
+    const isorderByBot = await this.validateBotOrder(userId);
+
+    if (!isorderByBot) {
+      await this.validateOrder(requestPayload, userId);
+    }
 
     const symbolData = await this.prisma.symbol.findFirst({
       where: { symbol: Symbols[symbol] },
@@ -110,6 +114,18 @@ export class OrderService {
       throw new BadRequestException(
         `Insufficient holdings. Required: ${order.quantity}, Available: ${userHoldings.quantity}`,
       );
+    }
+  }
+
+  private async validateBotOrder(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (user.role == Role.bot) {
+      return true;
     }
   }
 }

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { usePriceStream } from '@/hooks/usePriceStream';
 import { useUserStore, useHoldingsStore } from '@/stores';
-import { orderApi } from '@/lib/api';
+import { orderApi, marketDataApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, 
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { STOCK_IMAGES, type Symbol } from '@/lib/constants';
+import { STOCK_IMAGES, SYMBOLS, type Symbol } from '@/lib/constants';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis, Area, AreaChart } from 'recharts';
 import {
   ChartConfig,
@@ -72,6 +72,26 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
 
   // Get holding for this symbol
   const holding = getHoldingBySymbol(symbol);
+
+  // Fetch historical prices on mount
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const response = await marketDataApi.getPriceHistory(symbol);
+        if (response.history && response.history.length > 0) {
+          setPriceHistory(
+            response.history.map((point) => ({
+              time: point.timestamp,
+              price: point.price,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Failed to fetch price history:', error);
+      }
+    };
+    fetchHistory();
+  }, [symbol]);
 
   // Update price history when new prices come in
   useEffect(() => {
@@ -198,11 +218,7 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
                 {isConnected ? 'Live' : 'Connecting...'}
               </Badge>
             </div>
-            <p className="text-sm text-gray-500">Meme Stock</p>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-3xl font-bold">${formatPrice(currentPrice)}</div>
         </div>
       </div>
 
@@ -216,7 +232,6 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
                   <TrendingUp className="h-5 w-5" />
                   Live Price Chart
                 </CardTitle>
-                <CardDescription>Real-time price updates • {priceHistory.length} data points</CardDescription>
               </div>
               {priceHistory.length > 0 && (
                 <div className="text-right">
@@ -276,28 +291,21 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
                       domain={[0, 'dataMax']}
                     />
                     <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          className="w-[180px]"
-                          labelFormatter={(value) => {
-                            return `Time: ${priceHistory[Number(value)]?.time ? new Date(priceHistory[Number(value)].time).toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit',
-                            }) : value}`;
-                          }}
-                          formatter={(value: any) => {
-                            return (
-                              <div className="flex items-center justify-between w-full">
-                                <span className="text-muted-foreground">Price:</span>
-                                <span className="font-mono font-bold text-foreground">
-                                  ${Number(value).toFixed(2)}
-                                </span>
-                              </div>
-                            );
-                          }}
-                        />
-                      }
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const data = payload[0].payload;
+                        return (
+                          <div className="rounded-lg border border-border/50 bg-background px-3 py-2 shadow-xl">
+                            <div className="text-xs text-muted-foreground mb-1">{data.time}</div>
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">Price:</span>
+                              <span className="font-mono font-bold text-foreground">
+                                ${Number(data.price).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }}
                     />
                     <Area
                       type="monotone"
@@ -315,6 +323,39 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
             )}
           </CardContent>
         </Card>
+
+        {/* Other Stocks to Watch */}
+        <div className="lg:col-span-2">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Other stocks to watch</h3>
+          <div className="flex gap-3">
+            {SYMBOLS.filter(s => s !== symbol).map((otherSymbol) => {
+              const otherPrice = prices.get(otherSymbol);
+              return (
+                <Link key={otherSymbol} href={`/symbol/${otherSymbol}`} className="flex-1">
+                  <Card className="hover:border-orange-500/50 transition-colors cursor-pointer">
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-amber-500/10 ring-1 ring-orange-500/30">
+                        <Image
+                          src={STOCK_IMAGES[otherSymbol as Symbol]}
+                          alt={otherSymbol}
+                          width={40}
+                          height={40}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{otherSymbol}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {otherPrice ? `$${(otherPrice / 100).toFixed(2)}` : '---'}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Order Form & Holdings */}
         <div className="space-y-6">

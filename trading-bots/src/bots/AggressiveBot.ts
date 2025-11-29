@@ -4,16 +4,16 @@ import { randomChoice, randomInt } from '../utils/randomizers';
 
 export class AggressiveBot extends Bot {
   getMinDelay(): number {
-    return 1000; // 10 seconds
+    return 1000;
   }
 
   getMaxDelay(): number {
-    return 10000; // 30 seconds
+    return 2000;
   }
 
   generateOrder(symbol: string, currentPrice: number): OrderRequest {
     const side = randomChoice(['buy', 'sell'] as const);
-    const isMarketOrder = Math.random() < 0.7; // 70% market orders
+    const isMarketOrder = Math.random() < 0.7; 
     
     if (isMarketOrder) {
       return {
@@ -23,7 +23,6 @@ export class AggressiveBot extends Bot {
         quantity: randomInt(50, 200)
       };
     } else {
-      // Limit order very close to current price (±0.5%)
       const price = this.enforcePriceBoundaries(
         this.calculateLimitPrice(currentPrice, side, 0.2)
       );

@@ -4,11 +4,11 @@ import { random, randomInt, randomChoice } from '../utils/randomizers';
 
 export class RandomBot extends Bot {
   getMinDelay(): number {
-    return 5000; // 5 seconds
+    return 1000;
   }
 
   getMaxDelay(): number {
-    return 20000; // 90 seconds
+    return 3000;
   }
 
   generateOrder(symbol: string, currentPrice: number): OrderRequest {
@@ -23,8 +23,7 @@ export class RandomBot extends Bot {
         quantity: randomInt(5, 150)
       };
     } else {
-      // Completely random price (±1-10% from current)
-      const variancePercent = random(1, 5);
+      const variancePercent = random(0.5, 1);
       const price = this.enforcePriceBoundaries(
         this.calculateLimitPrice(currentPrice, side, variancePercent)
       );

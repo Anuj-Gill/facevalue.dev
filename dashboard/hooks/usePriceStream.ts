@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { marketDataApi } from '@/lib/api';
 
 interface PriceUpdate {
   symbol: string;
@@ -19,6 +20,23 @@ export function usePriceStream(options?: UsePriceStreamOptions) {
   const [prices, setPrices] = useState<Map<string, number>>(new Map());
   const [lastUpdate, setLastUpdate] = useState<PriceUpdate | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  // Fetch initial prices on mount
+  useEffect(() => {
+    const fetchInitialPrices = async () => {
+      try {
+        const response = await marketDataApi.getLatestPrices();
+        const initialPrices = new Map<string, number>();
+        Object.entries(response.prices).forEach(([symbol, data]) => {
+          initialPrices.set(symbol, data.price);
+        });
+        setPrices(initialPrices);
+      } catch (error) {
+        console.error('Failed to fetch initial prices:', error);
+      }
+    };
+    fetchInitialPrices();
+  }, []);
 
   useEffect(() => {
     console.log('SSE API URL:', apiUrl);

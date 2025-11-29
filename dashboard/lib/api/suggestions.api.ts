@@ -11,6 +11,20 @@ export interface Suggestion {
   createdAt: string;
 }
 
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface PaginatedSuggestionsResponse {
+  data: Suggestion[];
+  pagination: PaginationInfo;
+}
+
 export interface CreateSuggestionPayload {
   coinName: string;
   ceoName: string;
@@ -21,10 +35,10 @@ export interface VotePayload {
 }
 
 export const suggestionsApi = {
-  // Get all suggestions (sorted by votes)
-  getAll: async (): Promise<Suggestion[]> => {
-    const response = await api.get('/suggestions');
-    return response.data.data;
+  // Get all suggestions (sorted by votes) with pagination
+  getAll: async (page: number = 1, limit: number = 10): Promise<PaginatedSuggestionsResponse> => {
+    const response = await api.get(`/suggestions?page=${page}&limit=${limit}`);
+    return response.data;
   },
 
   // Create a new suggestion

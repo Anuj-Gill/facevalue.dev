@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Logger,
   Param,
+  Query,
 } from '@nestjs/common';
 import { JWTGuard } from 'src/auth/auth.guard';
 import { UserService } from './user.service';
@@ -73,13 +74,20 @@ export class UserController {
 
   @Get('orders')
   @UseGuards(JWTGuard)
-  async getOrders(@Req() req: Request) {
+  async getOrders(
+    @Req() req: Request,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
     try {
       const userId = req['user'].sub;
-      this.logger.log(`Fetching orders for user: ${userId}`);
+      const pageNum = parseInt(page) || 1;
+      const limitNum = parseInt(limit) || 10;
       
-      const orders = await this.userService.getUserOrders(userId);
-      return orders;
+      this.logger.log(`Fetching orders for user: ${userId}, page: ${pageNum}, limit: ${limitNum}`);
+      
+      const result = await this.userService.getUserOrders(userId, pageNum, limitNum);
+      return result;
     } catch (err) {
       this.logger.error(`Error fetching orders: ${err.message}`);
       throw new HttpException(

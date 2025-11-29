@@ -4,11 +4,11 @@ import { random, randomInt } from '../utils/randomizers';
 
 export class ConservativeBot extends Bot {
   getMinDelay(): number {
-    return 3000; // 30 seconds
+    return 3000; 
   }
 
   getMaxDelay(): number {
-    return 10000; // 60 seconds
+    return 10000;
   }
 
   generateOrder(symbol: string, currentPrice: number): OrderRequest {
@@ -22,12 +22,9 @@ export class ConservativeBot extends Bot {
         quantity: randomInt(10, 50)
       };
     } else {
-      // Market making: place orders on both sides
-      // Randomly pick buy or sell for this iteration
       const side = Math.random() > 0.5 ? 'buy' : 'sell';
       
-      // Wider spread (2-5% from current price)
-      const spread = random(2, 5);
+      const spread = random(0.5, 1);
       const price = this.enforcePriceBoundaries(
         this.calculateLimitPrice(currentPrice, side, spread)
       );

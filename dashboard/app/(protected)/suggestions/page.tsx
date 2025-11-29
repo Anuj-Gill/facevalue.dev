@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoaderThree } from '@/components/ui/loader';
 import { useSuggestionsStore } from '@/stores';
 import { toast } from 'sonner';
 import {
@@ -20,11 +20,16 @@ import {
   Users,
   TrendingUp,
   Lightbulb,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 10;
 
 export default function SuggestionsPage() {
   const {
     suggestions,
+    pagination,
     isLoading,
     error,
     hasSuggested,
@@ -39,11 +44,12 @@ export default function SuggestionsPage() {
   const [coinName, setCoinName] = useState('');
   const [ceoName, setCeoName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    fetchSuggestions();
+    fetchSuggestions(currentPage, ITEMS_PER_PAGE);
     checkHasSuggested();
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     if (error) {
@@ -104,7 +110,7 @@ export default function SuggestionsPage() {
           <Trophy className="size-8 text-orange-400" />
         </div>
         <h1 className="text-4xl font-bold mb-3 text-white">
-          Choose Your Next CEO Coin
+          Choose Your Next CEO Stock
         </h1>
         <p className="text-gray-400 max-w-lg mx-auto mb-6">
           Suggest and vote for the next CEO to join the MemeExchange platform. The most upvoted suggestion will be added!
@@ -121,7 +127,7 @@ export default function SuggestionsPage() {
           } text-white font-semibold px-6 py-3 rounded-xl`}
         >
           <Plus className="size-4 mr-2" />
-          {hasSuggested ? 'Already Suggested' : 'Suggest a CEO Coin'}
+          {hasSuggested ? 'Already Suggested' : 'Suggest a CEO Stock'}
         </Button>
         {hasSuggested && (
           <p className="text-xs text-gray-500 mt-2">You can only submit one suggestion</p>
@@ -149,7 +155,7 @@ export default function SuggestionsPage() {
               <Lightbulb className="size-5 text-orange-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{suggestions.length}</p>
+              <p className="text-2xl font-bold text-white">{pagination?.total || suggestions.length}</p>
               <p className="text-xs text-gray-500">Total Suggestions</p>
             </div>
           </CardContent>
@@ -192,7 +198,7 @@ export default function SuggestionsPage() {
                 Leaderboard
               </CardTitle>
               <CardDescription className="text-gray-500">
-                Top voted CEO coin suggestions
+                Top voted CEO stock suggestions
               </CardDescription>
             </div>
             <Button
@@ -212,10 +218,9 @@ export default function SuggestionsPage() {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-20 w-full rounded-xl" />
-              ))}
+            <div className="p-6 flex flex-col items-center justify-center min-h-[200px]">
+              <LoaderThree />
+              <p className="text-muted-foreground mt-4">Loading suggestions...</p>
             </div>
           ) : suggestions.length === 0 ? (
             <div className="text-center py-16 px-6">
@@ -224,7 +229,7 @@ export default function SuggestionsPage() {
               </div>
               <h3 className="text-lg font-medium mb-2 text-white">No suggestions yet</h3>
               <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-                Be the first to suggest a CEO coin for the platform!
+                Be the first to suggest a CEO stock for the platform!
               </p>
               <Button
                 onClick={() => setShowModal(true)}
@@ -344,6 +349,38 @@ export default function SuggestionsPage() {
             </div>
           )}
         </CardContent>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="border-t border-white/5 p-4 flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, pagination.total)} of {pagination.total}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => prev - 1)}
+                disabled={!pagination.hasPrev || isLoading}
+                className="border-white/10 hover:bg-white/5"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="text-sm text-gray-400 px-2">
+                Page {currentPage} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => prev + 1)}
+                disabled={!pagination.hasNext || isLoading}
+                className="border-white/10 hover:bg-white/5"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Suggestion Modal */}
@@ -361,7 +398,7 @@ export default function SuggestionsPage() {
               <div className="inline-flex items-center justify-center w-14 h-14 mb-3 rounded-full bg-gradient-to-br from-orange-500/20 to-amber-500/20">
                 <Sparkles className="size-7 text-orange-400" />
               </div>
-              <h3 className="text-xl font-bold text-white">Suggest a CEO Coin</h3>
+              <h3 className="text-xl font-bold text-white">Suggest a CEO Stock</h3>
               <p className="text-sm text-gray-500 mt-1">
                 Which CEO should join the MemeExchange?
               </p>
@@ -370,7 +407,7 @@ export default function SuggestionsPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1.5">
-                  Coin Name
+                  Stock Name
                 </label>
                 <Input
                   placeholder="e.g., MEME3"

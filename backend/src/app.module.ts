@@ -22,6 +22,8 @@ import { UserController } from './apis/user/user.controller';
 import { UserService } from './apis/user/user.service';
 import { SuggestionsController } from './apis/suggestions/suggestions.controller';
 import { SuggestionsService } from './apis/suggestions/suggestions.service';
+import { RedisService } from './services/redis.service';
+import { MarketDataService } from './apis/market-data/market-data.service';
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { SuggestionsService } from './apis/suggestions/suggestions.service';
     HoldingsRepository,
     UserService,
     SuggestionsService,
+    RedisService,
+    MarketDataService,
   ],
 })
 export class AppModule {}

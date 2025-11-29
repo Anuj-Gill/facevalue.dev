@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoaderThree } from '@/components/ui/loader';
 import { useOrdersStore } from '@/stores';
 import { STOCK_IMAGES, type Symbol } from '@/lib/constants';
 import Link from 'next/link';
@@ -18,9 +18,13 @@ import {
   AlertCircle,
   ExternalLink,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+const ITEMS_PER_PAGE = 10;
 
 // Format coins (stored in cents, display as coins)
 const formatCoins = (cents: number | null) => {
@@ -125,11 +129,12 @@ const getStatusInfo = (status: string) => {
 };
 
 export default function OrdersPage() {
-  const { orders, isLoading, fetchOrders } = useOrdersStore();
+  const { orders, pagination, isLoading, fetchOrders } = useOrdersStore();
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    fetchOrders(currentPage, ITEMS_PER_PAGE);
+  }, [currentPage]);
 
   // Calculate order statistics
   const orderStats = orders.reduce((acc, order) => {
@@ -145,17 +150,9 @@ export default function OrdersPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 mt-24">
-        <div className="mb-8">
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
-          ))}
-        </div>
-        <Skeleton className="h-96 rounded-2xl" />
+      <div className="container mx-auto p-6 mt-24 flex flex-col items-center justify-center min-h-[60vh]">
+        <LoaderThree />
+        <p className="text-muted-foreground mt-4">Loading your orders...</p>
       </div>
     );
   }
@@ -178,7 +175,7 @@ export default function OrdersPage() {
         <Button 
           variant="outline" 
           size="sm"
-          onClick={() => fetchOrders()}
+          onClick={() => fetchOrders(currentPage, ITEMS_PER_PAGE)}
           className="flex items-center gap-2 border-white/10 hover:bg-white/5 rounded-xl"
         >
           <RefreshCw className="h-4 w-4" />
@@ -254,7 +251,7 @@ export default function OrdersPage() {
         <CardHeader className="border-b border-white/5">
           <CardTitle className="text-white">Recent Orders</CardTitle>
           <CardDescription className="text-gray-500">
-            Showing your last {orders.length} orders
+            {pagination ? `Showing ${orders.length} of ${pagination.total} orders` : `Showing ${orders.length} orders`}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -383,6 +380,38 @@ export default function OrdersPage() {
             </div>
           )}
         </CardContent>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="border-t border-white/5 p-4 flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, pagination.total)} of {pagination.total}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => prev - 1)}
+                disabled={!pagination.hasPrev || isLoading}
+                className="border-white/10 hover:bg-white/5"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="text-sm text-gray-400 px-2">
+                Page {currentPage} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => prev + 1)}
+                disabled={!pagination.hasNext || isLoading}
+                className="border-white/10 hover:bg-white/5"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

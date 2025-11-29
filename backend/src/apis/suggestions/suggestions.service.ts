@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/services/prisma.service';
-import { CreateSuggestionDto, SuggestionResponse } from './suggestions.dto';
+import { CreateSuggestionDto, SuggestionResponse, PaginatedSuggestionsResponse } from './suggestions.dto';
 
 @Injectable()
 export class SuggestionsService {
@@ -54,7 +54,12 @@ export class SuggestionsService {
     };
   }
 
-  async getAllSuggestions(userId: string): Promise<SuggestionResponse[]> {
+  async getAllSuggestions(userId: string, page: number = 1, limit: number = 10): Promise<PaginatedSuggestionsResponse> {
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const total = await this.prisma.coinSuggestion.count();
+
     const suggestions = await this.prisma.coinSuggestion.findMany({
       include: {
         votes: true,
@@ -82,8 +87,21 @@ export class SuggestionsService {
       };
     });
 
-    // Sort by net votes (highest first)
-    return suggestionsWithVotes.sort((a, b) => b.netVotes - a.netVotes);
+    // Sort by net votes (highest first) and paginate
+    const sortedSuggestions = suggestionsWithVotes.sort((a, b) => b.netVotes - a.netVotes);
+    const paginatedSuggestions = sortedSuggestions.slice(skip, skip + limit);
+
+    return {
+      data: paginatedSuggestions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
+      },
+    };
   }
 
   async vote(suggestionId: string, userId: string, voteType: 'UP' | 'DOWN'): Promise<SuggestionResponse> {

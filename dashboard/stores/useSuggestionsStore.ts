@@ -1,15 +1,16 @@
 import { create } from 'zustand';
-import { suggestionsApi, Suggestion } from '@/lib/api';
+import { suggestionsApi, Suggestion, PaginationInfo } from '@/lib/api';
 
 interface SuggestionsState {
   suggestions: Suggestion[];
+  pagination: PaginationInfo | null;
   isLoading: boolean;
   error: string | null;
   hasSuggested: boolean;
   isCheckingStatus: boolean;
 
   // Actions
-  fetchSuggestions: () => Promise<void>;
+  fetchSuggestions: (page?: number, limit?: number) => Promise<void>;
   createSuggestion: (coinName: string, ceoName: string) => Promise<void>;
   vote: (suggestionId: string, voteType: 'UP' | 'DOWN') => Promise<void>;
   checkHasSuggested: () => Promise<void>;
@@ -18,16 +19,21 @@ interface SuggestionsState {
 
 export const useSuggestionsStore = create<SuggestionsState>((set, get) => ({
   suggestions: [],
+  pagination: null,
   isLoading: false,
   error: null,
   hasSuggested: false,
   isCheckingStatus: false,
 
-  fetchSuggestions: async () => {
+  fetchSuggestions: async (page: number = 1, limit: number = 10) => {
     set({ isLoading: true, error: null });
     try {
-      const suggestions = await suggestionsApi.getAll();
-      set({ suggestions, isLoading: false });
+      const response = await suggestionsApi.getAll(page, limit);
+      set({ 
+        suggestions: response.data, 
+        pagination: response.pagination,
+        isLoading: false 
+      });
     } catch (error: any) {
       set({
         error: error.message || 'Failed to fetch suggestions',
@@ -40,11 +46,10 @@ export const useSuggestionsStore = create<SuggestionsState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const newSuggestion = await suggestionsApi.create({ coinName, ceoName });
-      set((state) => ({
-        suggestions: [newSuggestion, ...state.suggestions],
-        isLoading: false,
-        hasSuggested: true,
-      }));
+      // Refetch to get updated list with proper sorting
+      const { pagination } = get();
+      await get().fetchSuggestions(1, pagination?.limit || 10);
+      set({ hasSuggested: true, isLoading: false });
     } catch (error: any) {
       set({
         error: error.response?.data?.message || error.message || 'Failed to create suggestion',

@@ -14,6 +14,20 @@ export interface Order {
   updatedAt: string;
 }
 
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface PaginatedOrdersResponse {
+  data: Order[];
+  pagination: PaginationInfo;
+}
+
 export interface CreateOrderPayload {
   symbol: string;
   side: 'buy' | 'sell';
@@ -29,9 +43,9 @@ export const orderApi = {
     return response.data;
   },
 
-  // Get all orders for user
-  getAll: async (): Promise<Order[]> => {
-    const response = await api.get('/user/orders');
+  // Get all orders for user with pagination
+  getAll: async (page: number = 1, limit: number = 10): Promise<PaginatedOrdersResponse> => {
+    const response = await api.get(`/user/orders?page=${page}&limit=${limit}`);
     return response.data;
   },
 };
