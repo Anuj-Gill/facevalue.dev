@@ -5,7 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useHoldingsStore, useUserStore } from '@/stores';
 import { usePriceStream } from '@/hooks/usePriceStream';
+import { STOCK_IMAGES, type Symbol } from '@/lib/constants';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   ArrowUpIcon, 
   ArrowDownIcon, 
@@ -251,8 +253,14 @@ export default function HoldingsPage() {
                             href={`/symbol/${holding.symbol}`}
                             className="flex items-center gap-3 group-hover:text-orange-400 transition-colors"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500/20 to-amber-500/10 flex items-center justify-center">
-                              <span className="font-bold text-orange-400">{holding.symbol.charAt(0)}</span>
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-amber-500/10 ring-2 ring-orange-500/20">
+                              <Image
+                                src={STOCK_IMAGES[holding.symbol as Symbol]}
+                                alt={holding.symbol}
+                                width={40}
+                                height={40}
+                                className="object-cover w-full h-full"
+                              />
                             </div>
                             <div>
                               <span className="font-semibold text-white">{holding.symbol}</span>

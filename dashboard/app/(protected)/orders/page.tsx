@@ -5,7 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOrdersStore } from '@/stores';
+import { STOCK_IMAGES, type Symbol } from '@/lib/constants';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   ClipboardList, 
   RefreshCw, 
@@ -308,8 +310,14 @@ export default function OrdersPage() {
                             href={`/symbol/${order.symbol}`}
                             className="flex items-center gap-3 group-hover:text-orange-400 transition-colors"
                           >
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500/20 to-amber-500/10 flex items-center justify-center">
-                              <span className="font-bold text-sm text-orange-400">{order.symbol.charAt(0)}</span>
+                            <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-amber-500/10 ring-2 ring-orange-500/20">
+                              <Image
+                                src={STOCK_IMAGES[order.symbol as Symbol]}
+                                alt={order.symbol}
+                                width={36}
+                                height={36}
+                                className="object-cover w-full h-full"
+                              />
                             </div>
                             <span className="font-semibold text-white">{order.symbol}</span>
                             <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500" />

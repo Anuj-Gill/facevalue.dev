@@ -21,6 +21,8 @@ import {
   Briefcase
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { STOCK_IMAGES, type Symbol } from '@/lib/constants';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis, Area, AreaChart } from 'recharts';
 import {
   ChartConfig,
@@ -178,12 +180,26 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
 
       {/* Symbol Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-4xl font-bold">{symbol}</h1>
-          <Badge variant="outline" className={isConnected ? 'text-green-500 border-green-500' : 'text-yellow-500 border-yellow-500'}>
-            <span className={`w-2 h-2 rounded-full mr-1 ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
-            {isConnected ? 'Live' : 'Connecting...'}
-          </Badge>
+        <div className="flex items-center gap-4 mb-2">
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-amber-500/10 ring-2 ring-orange-500/30">
+            <Image
+              src={STOCK_IMAGES[symbol as Symbol]}
+              alt={symbol}
+              width={56}
+              height={56}
+              className="object-cover w-full h-full"
+            />
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-4xl font-bold">{symbol}</h1>
+              <Badge variant="outline" className={isConnected ? 'text-green-500 border-green-500' : 'text-yellow-500 border-yellow-500'}>
+                <span className={`w-2 h-2 rounded-full mr-1 ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
+                {isConnected ? 'Live' : 'Connecting...'}
+              </Badge>
+            </div>
+            <p className="text-sm text-gray-500">Meme Stock</p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-3xl font-bold">${formatPrice(currentPrice)}</div>

@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePriceStream } from '@/hooks/usePriceStream';
 import { useHoldingsStore, useUserStore } from '@/stores';
-import { SYMBOLS } from '@/lib/constants';
+import { SYMBOLS, STOCK_IMAGES, type Symbol } from '@/lib/constants';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   ArrowUpIcon, 
   ArrowDownIcon, 
@@ -123,8 +124,14 @@ export default function Dashboard() {
                       {/* Header Row */}
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-orange-500/20 to-amber-500/10 flex items-center justify-center">
-                            <span className="font-bold text-orange-400">{symbol.charAt(0)}</span>
+                          <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-amber-500/10 flex items-center justify-center ring-2 ring-orange-500/20">
+                            <Image
+                              src={STOCK_IMAGES[symbol as Symbol]}
+                              alt={symbol}
+                              width={44}
+                              height={44}
+                              className="object-cover w-full h-full"
+                            />
                           </div>
                           <div>
                             <h3 className="font-semibold text-white group-hover:text-orange-400 transition-colors">{symbol}</h3>
@@ -325,8 +332,14 @@ export default function Dashboard() {
                         className="flex items-center justify-between py-2 group"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-500/20 to-amber-500/10 flex items-center justify-center">
-                            <span className="font-bold text-sm text-orange-400">{holding.symbol.charAt(0)}</span>
+                          <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-amber-500/10 flex items-center justify-center ring-2 ring-orange-500/20">
+                            <Image
+                              src={STOCK_IMAGES[holding.symbol as Symbol]}
+                              alt={holding.symbol}
+                              width={36}
+                              height={36}
+                              className="object-cover w-full h-full"
+                            />
                           </div>
                           <div>
                             <p className="text-sm font-medium text-white group-hover:text-orange-400 transition-colors">{holding.symbol}</p>
