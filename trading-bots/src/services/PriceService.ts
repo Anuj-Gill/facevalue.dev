@@ -39,8 +39,10 @@ export class PriceService {
     if (error || !data) {
       console.error('Failed to fetch all prices:', error);
       return [
-        { symbol: 'MEME1', lastTradePrice: 12000 },
-        { symbol: 'MEME2', lastTradePrice: 12000 }
+        { symbol: 'SAMA', lastTradePrice: 12000 },
+        { symbol: 'MUKS', lastTradePrice: 12000 },
+        { symbol: 'HKRT', lastTradePrice: 12000 },
+        { symbol: 'PAAJI', lastTradePrice: 12000 },
       ];
     }
 

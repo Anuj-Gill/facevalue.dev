@@ -86,4 +86,17 @@ export class RedisService implements OnModuleInit {
     }
     return item as PricePoint;
   }
+
+  // Platform stats caching
+  private readonly STATS_KEY = 'platform:stats';
+  private readonly STATS_TTL = 3600; // 1 hour in seconds
+
+  async getStats(): Promise<{ totalOrders: number; totalVolume: number } | null> {
+    return this.redis.get<{ totalOrders: number; totalVolume: number }>(this.STATS_KEY);
+  }
+
+  async setStats(stats: { totalOrders: number; totalVolume: number }): Promise<void> {
+    await this.redis.set(this.STATS_KEY, stats, { ex: this.STATS_TTL });
+  }
+
 }

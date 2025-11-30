@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { AppNavbar } from '@/components/layout/Navbar';
+import { Footer, FaceValueBrandText } from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/sonner';
 import { useUserStore, useHoldingsStore } from '@/stores';
 
@@ -20,9 +21,11 @@ export default function ProtectedLayout({
   }, [fetchUser, fetchHoldings]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <AppNavbar />
-      <main>{children}</main>
+      <main className="flex-1">{children}</main>
+      <Footer />
+      <FaceValueBrandText />
       <Toaster position="top-right" richColors />
     </div>
   );

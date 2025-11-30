@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { STOCK_IMAGES, SYMBOLS, type Symbol } from '@/lib/constants';
+import { STOCK_IMAGES, SYMBOLS, PERSON_NAMES, type Symbol } from '@/lib/constants';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis, Area, AreaChart } from 'recharts';
 import {
   ChartConfig,
@@ -61,6 +61,8 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOrderSuccess, setShowOrderSuccess] = useState(false);
+  const [orderExecutionTime, setOrderExecutionTime] = useState<number>(0);
   
   // Stores
   const { user, fetchUser } = useUserStore();
@@ -152,6 +154,7 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
     }
 
     setIsSubmitting(true);
+    const startTime = performance.now();
 
     try {
       const orderData = {
@@ -164,7 +167,13 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
 
       await orderApi.create(orderData);
       
-      toast.success('Order placed successfully!');
+      const endTime = performance.now();
+      setOrderExecutionTime(Math.round(endTime - startTime));
+      setShowOrderSuccess(true);
+      
+      // Auto-hide after 3 seconds
+      // setTimeout(() => setShowOrderSuccess(false), 5000);
+      
       setQuantity('');
       setPrice('');
       
@@ -188,17 +197,7 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
     : 0;
 
   return (
-    <div className="container mx-auto p-6 mt-24">
-      {/* Back Link */}
-      <Link 
-        href="/dashboard" 
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
-      </Link>
-
-      {/* Symbol Header */}
+    <div className="container mx-auto p-6 my-28">
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-2">
           <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-amber-500/10 ring-2 ring-orange-500/30">
@@ -324,40 +323,7 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
           </CardContent>
         </Card>
 
-        {/* Other Stocks to Watch */}
-        <div className="lg:col-span-2">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Other stocks to watch</h3>
-          <div className="flex gap-3">
-            {SYMBOLS.filter(s => s !== symbol).map((otherSymbol) => {
-              const otherPrice = prices.get(otherSymbol);
-              return (
-                <Link key={otherSymbol} href={`/symbol/${otherSymbol}`} className="flex-1">
-                  <Card className="hover:border-orange-500/50 transition-colors cursor-pointer">
-                    <CardContent className="p-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-orange-500/20 to-amber-500/10 ring-1 ring-orange-500/30">
-                        <Image
-                          src={STOCK_IMAGES[otherSymbol as Symbol]}
-                          alt={otherSymbol}
-                          width={40}
-                          height={40}
-                          className="object-cover w-full h-full"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-semibold">{otherSymbol}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {otherPrice ? `$${(otherPrice / 100).toFixed(2)}` : '---'}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Order Form & Holdings */}
+        {/* Order Form & Holdings - Right side of chart */}
         <div className="space-y-6">
           {/* Holdings Card */}
           {holding && holding.quantity > 0 && (
@@ -502,7 +468,7 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
                 {/* Validation Error */}
                 {orderValidation.error && (
                   <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                     <span>{orderValidation.error}</span>
                   </div>
                 )}
@@ -525,7 +491,110 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
             </CardContent>
           </Card>
         </div>
+
+        {/* Other Stocks to Watch - Below the chart, spans full width on second row */}
+        <div className="lg:col-span-2">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Other stocks to watch</h3>
+          <div className="flex gap-3">
+            {SYMBOLS.filter(s => s !== symbol).map((otherSymbol) => {
+              const otherPrice = prices.get(otherSymbol);
+              return (
+                <Link key={otherSymbol} href={`/symbol/${otherSymbol}`} className="flex-1">
+                  <Card className="hover:border-orange-500/50 transition-all cursor-pointer group bg-zinc-900/50">
+                    <CardContent className="p-4 flex items-center gap-4">
+                      {/* Avatar */}
+                      <div className="w-11 h-11 rounded-full overflow-hidden bg-linear-to-br from-orange-500/20 to-amber-500/10 ring-2 ring-orange-500/20 shrink-0">
+                        <Image
+                          src={STOCK_IMAGES[otherSymbol as Symbol]}
+                          alt={otherSymbol}
+                          width={44}
+                          height={44}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                      
+                      {/* Name & Person */}
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-semibold text-white group-hover:text-orange-400 transition-colors">{otherSymbol}</span>
+                        <span className="text-xs text-gray-500">{PERSON_NAMES[otherSymbol as Symbol]}</span>
+                      </div>
+                      
+                      {/* Price */}
+                      <div className="ml-auto text-right">
+                        <p className="font-bold text-white">
+                          ${otherPrice ? (otherPrice / 100).toFixed(2) : '---'}
+                        </p>
+                      </div>
+                      
+                      {/* Live Badge */}
+                      <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-full shrink-0">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                        <span className="text-emerald-400 text-xs font-medium">LIVE</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      {/* Order Success Modal */}
+      {showOrderSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative bg-zinc-900/90 border border-white/10 rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl shadow-orange-500/10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowOrderSuccess(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors group"
+            >
+              <span className="text-gray-400 group-hover:text-white text-lg leading-none">&times;</span>
+            </button>
+
+            {/* Success Icon with glow effect */}
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl scale-150" />
+                <div className="relative w-20 h-20 bg-linear-to-br from-orange-500/20 to-amber-500/10 rounded-full flex items-center justify-center ring-2 ring-orange-500/30">
+                  <Image
+                    src="/premium-flash.png"
+                    alt="Order Success"
+                    width={48}
+                    height={48}
+                    className="drop-shadow-lg"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Success Text */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-white mb-1">Order Executed!</h2>
+              <p className="text-gray-400 text-sm">Your order has been successfully placed</p>
+            </div>
+            
+            {/* Execution Time Card */}
+            <div className="bg-black/40 rounded-2xl p-4 border border-white/5">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400 text-sm">Execution Time</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-2xl font-mono font-bold text-orange-400">{orderExecutionTime}</span>
+                  <span className="text-orange-400/70 text-sm font-medium">ms</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Continue Button */}
+            <button
+              onClick={() => setShowOrderSuccess(false)}
+              className="w-full mt-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-xl transition-all"
+            >
+              Continue Trading
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

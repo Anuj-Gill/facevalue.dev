@@ -21,9 +21,9 @@ api.interceptors.response.use(
                     error.message || 
                     'An unexpected error occurred';
     
-    // If unauthorized, redirect to login
+    // If unauthorized, redirect to login (but not if already on login page)
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
     }

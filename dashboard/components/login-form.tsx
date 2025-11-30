@@ -1,15 +1,16 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { supabaseClient } from "@/lib/supabase/client"
+} from "@/components/ui/card";
+import { supabaseClient } from "@/lib/supabase/client";
+import Image from "next/image";
 
 export function LoginForm({
   className,
@@ -17,21 +18,30 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   async function handleGoogleSignIn() {
     await supabaseClient.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
       options: {
         redirectTo: `${location.origin}/callback`,
-        queryParams: { access_type: 'offline', prompt: 'consent' }
-      }
-    })
+        queryParams: { access_type: "offline", prompt: "consent" },
+      },
+    });
   }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="bg-card border-white/10 rounded-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl text-white">Welcome to Meme Stock Exchange</CardTitle>
+        <CardHeader className="text-center items-center justify-center">
+          <Image
+            src="/color-shield.png"
+            alt="Shield"
+            width={90}
+            height={90}
+            className="rounded-lg"
+          />
+          <CardTitle className="text-2xl text-white">
+            Welcome to Face Value
+          </CardTitle>
           <CardDescription className="text-gray-500">
-            Sign in to start trading meme stocks
+            Sign in to start trading CEO stocks
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -41,7 +51,11 @@ export function LoginForm({
             type="button"
           >
             <div className="bg-white rounded-full p-1 mr-2 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="size-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                className="size-4"
+              >
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   fill="#4285F4"
@@ -64,12 +78,6 @@ export function LoginForm({
           </Button>
         </CardContent>
       </Card>
-      <p className="px-6 text-center text-sm text-gray-500">
-        By clicking continue, you agree to our{" "}
-        <a href="#" className="underline underline-offset-4 hover:text-white transition-colors">Terms of Service</a>{" "}
-        and{" "}
-        <a href="#" className="underline underline-offset-4 hover:text-white transition-colors">Privacy Policy</a>.
-      </p>
     </div>
-  )
+  );
 }

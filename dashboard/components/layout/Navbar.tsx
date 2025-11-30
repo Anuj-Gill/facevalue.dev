@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useUserStore } from '@/stores';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,23 +91,8 @@ export function AppNavbar() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
-  // Load user data from localStorage on mount
-  useEffect(() => {
-    const storedAvatarUrl = localStorage.getItem('user_avatar_url');
-    const storedFullName = localStorage.getItem('user_full_name');
-    const storedEmail = localStorage.getItem('user_email');
-    
-    if (storedAvatarUrl) setAvatarUrl(storedAvatarUrl);
-    if (storedFullName) setUserName(storedFullName);
-    if (storedEmail) setUserEmail(storedEmail);
-  }, []);
-
   const handleLogout = () => {
-    // Clear all stored data
-    localStorage.removeItem('sb-zuxsdgfqyvltynwigkpc-auth-token');
-    localStorage.removeItem('user_avatar_url');
-    localStorage.removeItem('user_full_name');
-    localStorage.removeItem('user_email');
+    document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     window.location.href = '/';
   };
 
@@ -126,23 +113,27 @@ export function AppNavbar() {
       <NavBody className="bg-card/80 border border-white/10">
         {/* Logo */}
         <Link
-          href="/dashboard"
-          className="relative z-20 flex items-center gap-2 px-2 py-1"
+          href={'/'}
+          className="relative z-20 flex items-center gap-2 py-1"
         >
-          <div className="bg-orange-500 text-white flex size-8 items-center justify-center rounded-full">
-            <span className="text-sm font-bold">C</span>
-          </div>
-          <span className="font-semibold text-white">CEO Stock Exchange</span>
+          <Image
+            src="/facevalue_logo.webp"
+            alt="Face Value"
+            width={48}
+            height={48}
+            className="rounded-full"
+          />
+          <span className="font-bold text-lg text-white">Face Value</span>
         </Link>
 
-        {/* Nav Items */}
-        <NavItems items={navItems} />
+        {/* Nav Items - Only show when logged in */}
+        {user && <NavItems items={navItems} />}
 
         {/* Right Side - GitHub, Wallet Balance & Profile */}
         <div className="relative z-20 flex items-center gap-3">
           {/* GitHub Link */}
           <a
-            href="https://github.com/anuj-xcode/meme-stock-exchange"
+            href="https://github.com/Anuj-Gill/meme-stock-exchange"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
@@ -154,49 +145,60 @@ export function AppNavbar() {
             </div>
           </a>
 
-          {/* Wallet Balance Pill */}
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
-            <GoldCoin className="size-5" />
-            {isLoading ? (
-              <Skeleton className="h-4 w-16 bg-amber-500/20" />
-            ) : (
-              <span className="font-semibold text-sm text-amber-400">
-                {user ? formatCoins(user.walletBalance) : '0.00'}
-              </span>
-            )}
-          </div>
+          {user ? (
+            <>
+              {/* Wallet Balance Pill - Only show when logged in */}
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
+                <GoldCoin className="size-5" />
+                {isLoading ? (
+                  <Skeleton className="h-4 w-16 bg-amber-500/20" />
+                ) : (
+                  <span className="font-semibold text-sm text-amber-400">
+                    {formatCoins(user.walletBalance)}
+                  </span>
+                )}
+              </div>
 
-          {/* User Profile Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className="outline-none">
-              {isLoading ? (
-                <Skeleton className="h-9 w-9 rounded-full" />
-              ) : (
-                <Avatar className="h-9 w-9 cursor-pointer border-2 border-white/10 hover:border-orange-500/50 transition-colors">
-                  <AvatarImage src={displayAvatarUrl || undefined} alt={displayName || 'User'} />
-                  <AvatarFallback className="bg-card text-white">
-                    {displayName?.charAt(0)?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-              )}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-card border-white/10">
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium text-white">{displayName || 'User'}</p>
-                  <p className="text-xs text-gray-500">{displayEmail}</p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="text-red-500 cursor-pointer focus:text-red-500 focus:bg-red-500/10"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              {/* User Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="outline-none">
+                  {isLoading ? (
+                    <Skeleton className="h-9 w-9 rounded-full" />
+                  ) : (
+                    <Avatar className="h-9 w-9 cursor-pointer border-2 border-white/10 hover:border-orange-500/50 transition-colors">
+                      <AvatarImage src={displayAvatarUrl || undefined} alt={displayName || 'User'} />
+                      <AvatarFallback className="bg-card text-white">
+                        {displayName?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-card border-white/10">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium text-white">{displayName || 'User'}</p>
+                      <p className="text-xs text-gray-500">{displayEmail}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="text-red-500 cursor-pointer focus:text-red-500 focus:bg-red-500/10"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            /* Login Button - Show when logged out */
+            <Link href="/login">
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 rounded-full">
+                Start Trading
+              </Button>
+            </Link>
+          )}
         </div>
       </NavBody>
 
@@ -205,83 +207,99 @@ export function AppNavbar() {
         <MobileNavHeader>
           {/* Logo */}
           <Link
-            href="/dashboard"
+            href={user ? '/dashboard' : '/'}
             className="flex items-center gap-2"
           >
-            <div className="bg-orange-500 text-white flex size-8 items-center justify-center rounded-full">
-              <span className="text-sm font-bold">C</span>
-            </div>
-            <span className="font-semibold text-white">CEO Stock Exchange</span>
+            <Image
+              src="/facevalue_logo.webp"
+              alt="Face Value"
+              width={64}
+              height={64}
+              className="rounded-lg"
+            />
+            <span className="font-semibold text-white">Face Value</span>
           </Link>
 
           {/* Right side with wallet, avatar, and toggle */}
           <div className="flex items-center gap-2">
-            {/* Compact Wallet Balance */}
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
-              <GoldCoin className="size-4" />
-              {isLoading ? (
-                <Skeleton className="h-3 w-10 bg-amber-500/20" />
-              ) : (
-                <span className="font-semibold text-xs text-amber-400">
-                  {user ? formatCoins(user.walletBalance) : '0.00'}
-                </span>
-              )}
-            </div>
+            {user ? (
+              <>
+                {/* Compact Wallet Balance */}
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
+                  <GoldCoin className="size-4" />
+                  {isLoading ? (
+                    <Skeleton className="h-3 w-10 bg-amber-500/20" />
+                  ) : (
+                    <span className="font-semibold text-xs text-amber-400">
+                      {formatCoins(user.walletBalance)}
+                    </span>
+                  )}
+                </div>
 
-            {/* Avatar */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="outline-none">
-                {isLoading ? (
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                ) : (
-                  <Avatar className="h-8 w-8 cursor-pointer border-2 border-white/10">
-                    <AvatarImage src={displayAvatarUrl || undefined} alt={displayName || 'User'} />
-                    <AvatarFallback className="bg-card text-white text-xs">
-                      {displayName?.charAt(0)?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-card border-white/10">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium text-white">{displayName || 'User'}</p>
-                    <p className="text-xs text-gray-500">{displayEmail}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-white/10" />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-red-500 cursor-pointer focus:text-red-500 focus:bg-red-500/10"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                {/* Avatar */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="outline-none">
+                    {isLoading ? (
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                    ) : (
+                      <Avatar className="h-8 w-8 cursor-pointer border-2 border-white/10">
+                        <AvatarImage src={displayAvatarUrl || undefined} alt={displayName || 'User'} />
+                        <AvatarFallback className="bg-card text-white text-xs">
+                          {displayName?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-card border-white/10">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium text-white">{displayName || 'User'}</p>
+                        <p className="text-xs text-gray-500">{displayEmail}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="text-red-500 cursor-pointer focus:text-red-500 focus:bg-red-500/10"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
-            <MobileNavToggle
-              isOpen={isMobileMenuOpen}
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            />
+                <MobileNavToggle
+                  isOpen={isMobileMenuOpen}
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                />
+              </>
+            ) : (
+              <Link href="/login">
+                <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 rounded-full">
+                  Start Trading
+                </Button>
+              </Link>
+            )}
           </div>
         </MobileNavHeader>
 
-        <MobileNavMenu
-          isOpen={isMobileMenuOpen}
-          onClose={() => setIsMobileMenuOpen(false)}
-        >
-          {navItems.map((item, idx) => (
-            <Link
-              key={idx}
-              href={item.link}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full px-4 py-2 text-neutral-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-            >
-              {item.name}
-            </Link>
-          ))}
-        </MobileNavMenu>
+        {user && (
+          <MobileNavMenu
+            isOpen={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
+          >
+            {navItems.map((item, idx) => (
+              <Link
+                key={idx}
+                href={item.link}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full px-4 py-2 text-neutral-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </MobileNavMenu>
+        )}
       </MobileNav>
     </Navbar>
   );

@@ -1,1 +1,1 @@
-export const symbols = ['MEME1', 'MEME2']
+export const symbols = ['SAMA', 'MUKS', 'HKRT', 'PAAJI']

@@ -2271,7 +2271,7 @@
 
 "@tabler/icons-react@^3.35.0":
   version "3.35.0"
-  resolved "https://registry.npmjs.org/@tabler/icons-react/-/icons-react-3.35.0.tgz"
+  resolved "https://registry.yarnpkg.com/@tabler/icons-react/-/icons-react-3.35.0.tgz#27f295f36b42f8dc2e7841dd651c8905d0097818"
   integrity sha512-XG7t2DYf3DyHT5jxFNp5xyLVbL4hMJYJhiSdHADzAjLRYfL7AnjlRfiHDHeXxkb2N103rEIvTsBRazxXtAUz2g==
   dependencies:
     "@tabler/icons" "3.35.0"
@@ -6983,6 +6983,14 @@ motion-utils@^12.23.6:
   version "12.23.6"
   resolved "https://registry.npmjs.org/motion-utils/-/motion-utils-12.23.6.tgz"
   integrity sha512-eAWoPgr4eFEOFfg2WjIsMoqJTW6Z8MTUCgn/GZ3VRpClWBdnbjryiA3ZSNLyxCTmCQx4RmYX6jX1iWHbenUPNQ==
+
+motion@^12.23.24:
+  version "12.23.24"
+  resolved "https://registry.yarnpkg.com/motion/-/motion-12.23.24.tgz#39d8f79507b1b89dbcb3c14741749a459ea88be6"
+  integrity sha512-Rc5E7oe2YZ72N//S3QXGzbnXgqNrTESv8KKxABR20q2FLch9gHLo0JLyYo2hZ238bZ9Gx6cWhj9VO0IgwbMjCw==
+  dependencies:
+    framer-motion "^12.23.24"
+    tslib "^2.4.0"
 
 ms@2.0.0:
   version "2.0.0"

@@ -1,9 +1,17 @@
-export const SYMBOLS = ['MEME1', 'MEME2'] as const;
+export const SYMBOLS = ['SAMA', 'MUKS', 'HKRT', 'PAAJI'] as const;
 
 export type Symbol = typeof SYMBOLS[number];
 
-// Stock images - CEO caricatures
 export const STOCK_IMAGES: Record<Symbol, string> = {
-  MEME1: '/sam-altman.webp',
-  MEME2: '/elon-musk.webp',
+  SAMA: '/stocks/sam.webp',
+  MUKS: '/stocks/musk.webp',
+  HKRT: '/stocks/harkirat.webp',
+  PAAJI: '/stocks/paaji.webp',
 };
+
+export const PERSON_NAMES: Record<Symbol, string> = {
+  SAMA: 'Sam Altman',
+  MUKS: 'Elon Musk',
+  HKRT: 'Harkirat Singh',
+  PAAJI: 'Maanu Arora',
+}

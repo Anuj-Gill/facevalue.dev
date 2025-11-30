@@ -8,7 +8,7 @@ export abstract class Bot {
   protected userId: string;
   protected name: string;
   protected isRunning: boolean = false;
-  protected symbols: string[] = ['MEME1', 'MEME2'];
+  protected symbols: string[] = ['SAMA', 'MUKS', 'HKRT', 'PAAJI'];
 
   constructor(userId: string, name: string) {
     this.userId = userId;

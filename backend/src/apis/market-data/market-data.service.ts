@@ -8,6 +8,12 @@ export interface LatestPrices {
   prices: Record<string, { price: number; timestamp: number }>;
 }
 
+export interface PlatformStats {
+  totalOrders: number;
+  totalVolume: number;
+  matchingEngineLatency: number;
+}
+
 @Injectable()
 export class MarketDataService {
   constructor(
@@ -57,5 +63,38 @@ export class MarketDataService {
     }
 
     return { prices };
+  }
+
+  async getPlatformStats(): Promise<PlatformStats> {
+    // Try to get from cache first
+    const cachedStats = await this.redisService.getStats();
+    
+    if (cachedStats) {
+      return {
+        ...cachedStats,
+        matchingEngineLatency: 300, // Hardcoded ~400ms
+      };
+    }
+
+    // Cache miss - fetch from database
+    const [totalOrders, volumeResult] = await Promise.all([
+      this.prisma.order.count(),
+      this.prisma.trade.aggregate({
+        _sum: {
+          quantity: true,
+        },
+      }),
+    ]);
+
+    const totalVolume = volumeResult._sum.quantity || 0;
+
+    // Cache the results
+    await this.redisService.setStats({ totalOrders, totalVolume });
+
+    return {
+      totalOrders,
+      totalVolume,
+      matchingEngineLatency: 300, // Hardcoded ~400ms
+    };
   }
 }

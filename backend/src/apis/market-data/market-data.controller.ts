@@ -57,6 +57,11 @@ export class MarketDataController {
     return this.marketDataService.getLatestPrices();
   }
 
+  @Get('stats')
+  async getPlatformStats() {
+    return this.marketDataService.getPlatformStats();
+  }
+
   @Get(':symbol/price-history')
   async getPriceHistory(@Param('symbol') symbol: string) {
     const history = await this.redisService.getPriceHistory(symbol);

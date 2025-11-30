@@ -113,8 +113,10 @@ model Symbol {
 }
 
 enum Symbols {
-  MEME1
-  MEME2
+  SAMA
+  MUKS
+  HKRT
+  PAAJI
 }
 
 model Holdings {

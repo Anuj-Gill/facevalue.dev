@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { HoverBorderGradient } from '@/components/ui/hover-border-gradient';
 import { usePriceStream } from '@/hooks/usePriceStream';
 import { useHoldingsStore, useUserStore } from '@/stores';
-import { SYMBOLS, STOCK_IMAGES, type Symbol } from '@/lib/constants';
+import { SYMBOLS, STOCK_IMAGES, type Symbol, PERSON_NAMES } from '@/lib/constants';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -89,7 +89,7 @@ export default function Dashboard() {
     : 0;
 
   return (
-    <div className="container mx-auto p-6 mt-24">
+    <div className="container mx-auto p-6 my-28">
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
@@ -105,7 +105,7 @@ export default function Dashboard() {
         {/* Vote CEO Button */}
         <Link href="/suggestions">
           <HoverBorderGradient
-            containerClassName="rounded-full"
+            containerClassName="rounded-full cursor-pointer"
             className="flex items-center gap-2 bg-black text-white px-4 py-2"
           >
             <Sparkles className="size-4 text-orange-400" />
@@ -150,7 +150,7 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <h3 className="font-semibold text-white group-hover:text-orange-400 transition-colors">{symbol}</h3>
-                            <p className="text-xs text-gray-500">CEO Stock</p>
+                            <p className="text-xs text-gray-500">{PERSON_NAMES[symbol as Symbol]}</p>
                           </div>
                         </div>
                         {currentPrice !== undefined ? (
@@ -204,7 +204,7 @@ export default function Dashboard() {
           </div>
 
           {/* Market Tips & Insights */}
-          <Card className="bg-gradient-to-br from-orange-500/5 to-amber-500/5 border-orange-500/20 rounded-2xl mt-6">
+          {/* <Card className="bg-gradient-to-br from-orange-500/5 to-amber-500/5 border-orange-500/20 rounded-2xl mt-6">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="p-1.5 bg-orange-500/20 rounded-lg">
@@ -236,7 +236,7 @@ export default function Dashboard() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         {/* Right Section - Portfolio Summary */}
@@ -371,39 +371,61 @@ export default function Dashboard() {
 
       {/* Fun Money Modal */}
       {showMoneyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="relative bg-card border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative bg-zinc-900/90 border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl shadow-orange-500/10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            {/* Close Button */}
             <button
               onClick={() => setShowMoneyModal(false)}
-              className="absolute top-4 right-4 p-1 text-gray-500 hover:text-white transition-colors"
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors group"
             >
-              <X className="size-5" />
+              <X className="size-4 text-gray-400 group-hover:text-white" />
             </button>
             
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20">
-                <GoldCoin className="size-10" />
+            {/* Icon with glow */}
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl scale-150" />
+                <div className="relative w-20 h-20 bg-linear-to-br from-orange-500/20 to-amber-500/10 rounded-full flex items-center justify-center ring-2 ring-orange-500/30">
+                  <Image
+                    src="/color-megaphone.png"
+                    alt="Announcement"
+                    width={48}
+                    height={48}
+                    className="drop-shadow-lg"
+                  />
+                </div>
               </div>
-              
-              <h3 className="text-xl font-bold text-white mb-2">Nice Try! 😏</h3>
-              
-              <p className="text-gray-400 mb-4">
-                These are <span className="text-orange-400 font-semibold">MemeCoins™</span> — they're completely fake and worth absolutely nothing in the real world.
-              </p>
-              
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-4">
-                <p className="text-xs text-amber-400">
-                  ⚠️ This is a demo trading platform. No real money, no real stocks, just vibes and memes.
-                </p>
-              </div>
-              
-              <button
-                onClick={() => setShowMoneyModal(false)}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all"
-              >
-                I Understand 🚀
-              </button>
             </div>
+            
+            {/* Title */}
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-white mb-1">Play Money Only</h3>
+              <p className="text-gray-400 text-sm">No real cash here!</p>
+            </div>
+            
+            {/* Info Points */}
+            <div className="space-y-3 mb-6">
+              <div className="flex items-start gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
+                <span className="text-orange-400 mt-0.5">•</span>
+                <p className="text-sm text-gray-300">These Coins are virtual & have no real value</p>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
+                <span className="text-orange-400 mt-0.5">•</span>
+                <p className="text-sm text-gray-300">You can't deposit real money</p>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
+                <span className="text-emerald-400 mt-0.5">•</span>
+                <p className="text-sm text-gray-300">Want more? Trade smart & earn it!</p>
+              </div>
+            </div>
+            
+            {/* Button */}
+            <button
+              onClick={() => setShowMoneyModal(false)}
+              className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-xl transition-all"
+            >
+              Got It
+            </button>
           </div>
         </div>
       )}
