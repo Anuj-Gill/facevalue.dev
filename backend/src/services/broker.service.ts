@@ -101,7 +101,6 @@ export class BrokerService implements OnModuleInit {
       const restingOrder = headNode.data;
 
       if(restingOrder.userId == order.userId) {
-        this.logger.log("same user, breaking---------------")
         break;
       }
       const matchedQty = Math.min(

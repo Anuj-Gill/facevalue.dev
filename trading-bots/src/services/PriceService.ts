@@ -34,7 +34,7 @@ export class PriceService {
   async getAllPrices(): Promise<PriceData[]> {
     const { data, error } = await this.supabase
       .from('symbols')
-      .select('symbol, lastTradePrice');
+      .select('symbol, last_trade_price');
 
     if (error || !data) {
       console.error('Failed to fetch all prices:', error);
@@ -48,7 +48,7 @@ export class PriceService {
 
     return data.map(row => ({
       symbol: row.symbol,
-      lastTradePrice: row.lastTradePrice
+      lastTradePrice: row.last_trade_price
     }));
   }
 }
