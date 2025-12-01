@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { LoaderThree } from '@/components/ui/loader';
 
+const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
 // Helper to parse JWT token
 function parseJwt(token: string) {
   try {
@@ -52,7 +53,7 @@ export default function AuthCallbackPage() {
           // Send tokens to backend
           try {
             const response = await axios.post(
-              'http://localhost:4000/oauth/register',
+              `${apiUrl}/oauth/register`,
               {
                 accessToken: session.access_token,
                 refreshToken: session.refresh_token,
