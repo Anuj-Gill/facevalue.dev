@@ -1,8 +1,9 @@
-# ⚡ CEO Stock Exchange
+# facevalue.dev <img width="100" height="100" alt="facevalue_logo" src="https://github.com/user-attachments/assets/3f38fb26-fdd6-433b-93ac-7321eaa521b9" />
+
 
 A full-stack, real-time stock exchange simulation for trading CEO-themed stocks. Features a custom-built matching engine, live price streaming via SSE, automated trading bots, and a community-driven CEO voting system.
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
@@ -18,28 +19,23 @@ A full-stack, real-time stock exchange simulation for trading CEO-themed stocks.
 
 ## Overview
 
-CEO Stock Exchange is a gamified stock trading simulation where users can trade stocks based on popular CEOs. The platform combines real-time trading mechanics with community-driven features.
+Face Value is a gamified stock trading simulation where users can trade stocks based on popular CEOs. The platform combines real-time trading mechanics with community-driven features.
 
 ### What You Can Do
 
-- **Trade CEO Stocks** - Buy and sell stocks named after famous CEOs (e.g., MEME1 for 
- Altman, MEME2 for Elon Musk)
+- **Trade CEO Stocks** - Buy and sell stocks named after famous CEOs/Tech person's
 - **Real-time Trading** - Experience live price updates and instant order execution
 - **Vote for New CEOs** - Suggest and vote for which CEO should be added next to the platform
 - **Track Your Portfolio** - Monitor holdings, P&L, and trading history in real-time
-- **Compete with Bots** - Trade against AI-powered bots with different trading strategies
 
 ### Key Features
 
-- ⚡ **Real-time matching engine** with price-time priority
-- 📊 **Live price streaming** via SSE (Server-Sent Events)
-- 🤖 **Automated trading bots** (Aggressive, Conservative, Random)
-- 🔐 **JWT authentication** with Google OAuth via Supabase
-- 📈 **In-memory order book** with database persistence
-- 🗳️ **Community voting** for new CEO stocks
-- 💰 **Virtual coin balance** for simulated trading
-- 📱 **Responsive dashboard** with real-time charts
-
+- **Real-time matching engine** with price-time priority
+- **Live price streaming** via SSE (Server-Sent Events)
+- **Automated trading bots** (Aggressive, Conservative, Random)
+- **JWT authentication** with Google OAuth via Supabase
+- **In-memory order book** with database persistence
+- **Community voting** for new CEO stocks
 ---
 
 ## Architecture
@@ -122,14 +118,14 @@ ceo-stock-exchange/
 
 - Node.js 18+
 - Yarn (workspace manager)
-- PostgreSQL database (or Supabase account)
+- PostgreSQL database (Supabase account)
 - Redis instance (or Upstash account)
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/Anuj-Gill/ceo-stock-exchange.git
+git clone https://github.com/Anuj-Gill/facevalue.dev.git
 cd ceo-stock-exchange
 
 # Install all dependencies (workspaces)
