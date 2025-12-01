@@ -84,20 +84,4 @@ export class OrderBookSide {
   hasPriceLevels(): boolean {
     return this._priceLevels.length > 0;
   }
-
-  // For debugging - returns a snapshot of the order book side
-  getSnapshot(): object {
-    return {
-      priceLevels: this._priceLevels,
-      levels: Array.from(this._levelMap.entries()).map(([price, list]) => ({
-        price,
-        queueLength: list.length,
-      })),
-      orders: Array.from(this._orderMap.entries()).map(([id, loc]) => ({
-        orderId: id.slice(0, 8),
-        price: loc.price,
-        qty: loc.node.data.remainingQuantity,
-      })),
-    };
-  }
 }

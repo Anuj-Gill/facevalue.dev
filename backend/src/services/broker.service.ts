@@ -68,17 +68,6 @@ export class BrokerService implements OnModuleInit {
     const orderBook = this.orderBooks.get(symbol);
     if (!orderBook) return;
 
-    this.logger.log(
-      `\n========== ORDER BOOK STATE (${label}) - ${symbol} ==========`,
-    );
-    this.logger.log(`Last Trade Price: ${orderBook.lastTradePrice}`);
-    this.logger.log(
-      `BIDS: ${JSON.stringify(orderBook.bids.getSnapshot(), null, 2)}`,
-    );
-    this.logger.log(
-      `ASKS: ${JSON.stringify(orderBook.asks.getSnapshot(), null, 2)}`,
-    );
-    this.logger.log(`========================================\n`);
   }
 
   async handleOrderMatching(order: Order) {
