@@ -9,7 +9,7 @@ export const LoaderOne = () => {
       repeat: Infinity,
       repeatType: "loop" as const,
       delay: x * 0.2,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
     };
   };
   return (
@@ -55,7 +55,7 @@ export const LoaderTwo = () => {
       repeat: Infinity,
       repeatType: "loop" as const,
       delay: x * 0.2,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
     };
   };
   return (
@@ -114,9 +114,9 @@ export const LoaderThree = () => {
         animate={{ pathLength: 1, fill: "var(--fill-final)" }}
         transition={{
           duration: 2,
-          ease: "easeInOut",
+          ease: "easeInOut" as const,
           repeat: Infinity,
-          repeatType: "reverse",
+          repeatType: "reverse" as const,
         }}
         d="M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11"
       />
@@ -129,15 +129,15 @@ export const LoaderFour = ({ text = "Loading..." }: { text?: string }) => {
     <div className="relative font-bold text-black [perspective:1000px] dark:text-white">
       <motion.span
         animate={{
-          skew: [0, -40, 0],
+          skewX: [0, -40, 0],
           scaleX: [1, 2, 1],
         }}
         transition={{
           duration: 0.05,
           repeat: Infinity,
-          repeatType: "reverse",
+          repeatType: "reverse" as const,
           repeatDelay: 2,
-          ease: "linear",
+          ease: "linear" as const,
           times: [0, 0.2, 0.5, 0.8, 1],
         }}
         className="relative z-20 inline-block"
@@ -154,8 +154,8 @@ export const LoaderFour = ({ text = "Loading..." }: { text?: string }) => {
         transition={{
           duration: 0.5,
           repeat: Infinity,
-          repeatType: "reverse",
-          ease: "linear",
+          repeatType: "reverse" as const,
+          ease: "linear" as const,
           times: [0, 0.2, 0.5, 0.8, 1],
         }}
       >
@@ -171,8 +171,8 @@ export const LoaderFour = ({ text = "Loading..." }: { text?: string }) => {
         transition={{
           duration: 0.8,
           repeat: Infinity,
-          repeatType: "reverse",
-          ease: "linear",
+          repeatType: "reverse" as const,
+          ease: "linear" as const,
           times: [0, 0.3, 0.6, 0.8, 1],
         }}
       >
@@ -202,9 +202,9 @@ export const LoaderFive = ({ text }: { text: string }) => {
           transition={{
             duration: 0.5,
             repeat: Infinity,
-            repeatType: "loop",
+            repeatType: "loop" as const,
             delay: i * 0.05,
-            ease: "easeInOut",
+            ease: "easeInOut" as const,
             repeatDelay: 2,
           }}
         >
