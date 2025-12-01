@@ -18,7 +18,8 @@ import {
   ArrowDownIcon,
   AlertCircle,
   Wallet,
-  Briefcase
+  Briefcase,
+  ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -570,14 +571,14 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
             
             {/* Success Text */}
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-white mb-1">Order Executed!</h2>
-              <p className="text-gray-400 text-sm">Your order has been successfully placed</p>
+              <h2 className="text-2xl font-bold text-white mb-1">Order Placed!</h2>
+              <p className="text-gray-400 text-sm">Your order has been submitted for processing</p>
             </div>
             
             {/* Execution Time Card */}
             <div className="bg-black/40 rounded-2xl p-4 border border-white/5">
               <div className="flex items-center justify-between">
-                <span className="text-gray-400 text-sm">Execution Time</span>
+                <span className="text-gray-400 text-sm">Processing Time</span>
                 <div className="flex items-center gap-1">
                   <span className="text-2xl font-mono font-bold text-orange-400">{orderExecutionTime}</span>
                   <span className="text-orange-400/70 text-sm font-medium">ms</span>
@@ -585,13 +586,15 @@ export default function SymbolPage({ params }: { params: Promise<{ symbol: strin
               </div>
             </div>
 
-            {/* Continue Button */}
-            <button
+            {/* View Order Status Button */}
+            <Link
+              href="/orders"
               onClick={() => setShowOrderSuccess(false)}
-              className="w-full mt-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-xl transition-all"
+              className="w-full mt-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
             >
-              Continue Trading
-            </button>
+              View Order Status
+              <ExternalLink className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       )}

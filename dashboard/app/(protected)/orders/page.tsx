@@ -21,7 +21,14 @@ import {
   ArrowDownRight,
   ChevronLeft,
   ChevronRight,
+  Info,
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 
 const ITEMS_PER_PAGE = 10;
@@ -164,7 +171,12 @@ export default function OrdersPage() {
         <div>
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-3 text-white">
             <div className="p-2 bg-orange-500/20 rounded-xl">
-              <ClipboardList className="h-7 w-7 text-orange-500" />
+              <Image
+                src="/color-notebook.png"
+                alt="Orders"
+                width={28}
+                height={28}
+              />
             </div>
             Order History
           </h1>
@@ -367,10 +379,31 @@ export default function OrdersPage() {
                           </div>
                         </td>
                         <td className="text-center py-4 px-6">
-                          <Badge className={`${statusInfo.className} border gap-1`}>
-                            <StatusIcon className="h-3 w-3" />
-                            {statusInfo.label}
-                          </Badge>
+                          <div className="flex items-center justify-center gap-1">
+                            <Badge className={`${statusInfo.className} border gap-1`}>
+                              <StatusIcon className="h-3 w-3" />
+                              {statusInfo.label}
+                            </Badge>
+                            {order.status === 'cancelled' && order.type === 'market' && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button className="p-1 rounded-full hover:bg-white/10 transition-colors">
+                                      <Info className="h-3.5 w-3.5 text-gray-400 hover:text-gray-300" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="max-w-xs bg-zinc-900 border-white/10 text-white p-3">
+                                    <p className="font-semibold mb-1">Why was this cancelled?</p>
+                                    <p className="text-xs text-gray-400">
+                                      Market orders are executed as IOC (Immediate-or-Cancel). 
+                                      If there&apos;s not enough liquidity at the current market price 
+                                      to fill your order, the unfilled portion is automatically cancelled.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

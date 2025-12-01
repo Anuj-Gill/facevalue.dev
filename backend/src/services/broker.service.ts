@@ -64,23 +64,25 @@ export class BrokerService implements OnModuleInit {
     });
   }
 
-  private logOrderBookState(symbol: string, label: string) {
-    const orderBook = this.orderBooks.get(symbol);
-    if (!orderBook) return;
+  // private logOrderBookState(symbol: string, label: string) {
+  //   const orderBook = this.orderBooks.get(symbol);
+  //   if (!orderBook) return;
 
-  }
+  // }
 
   async handleOrderMatching(order: Order) {
     this.logger.log(
       `Starting matching for order: ${order.id}, Symbol: ${order.symbol}, Side: ${order.side}, Type: ${order.type}, Price: ${order.price}, Qty: ${order.remainingQuantity}`,
     );
+    this.logger.log(order)
 
-    this.logOrderBookState(order.symbol, 'BEFORE MATCHING');
+    // this.logOrderBookState(order.symbol, 'BEFORE MATCHING');
 
     const orderBook = this.orderBooks.get(order.symbol);
     const targetSide = order.side == Side.buy ? orderBook.asks : orderBook.bids;
 
     while (order.remainingQuantity > 0 && targetSide.hasPriceLevels()) {
+      this.logger.log("Inside while")
       const priceToCompare = targetSide.bestPrice;
 
       if (order.type == OrderType.limit) {
@@ -97,6 +99,11 @@ export class BrokerService implements OnModuleInit {
       if (!headNode) break;
 
       const restingOrder = headNode.data;
+
+      if(restingOrder.userId == order.userId) {
+        this.logger.log("same user, breaking---------------")
+        break;
+      }
       const matchedQty = Math.min(
         order.remainingQuantity,
         restingOrder.remainingQuantity,
@@ -156,7 +163,7 @@ export class BrokerService implements OnModuleInit {
         targetSide.removeHeadAtPrice(priceToCompare);
         this.logger.log('Removed filled order from book');
       }
-      this.logOrderBookState(order.symbol, 'AFTER MATCHING');
+      // this.logOrderBookState(order.symbol, 'AFTER MATCHING');
     }
 
     await this.AddOrRemoveOrder(order);
@@ -174,6 +181,7 @@ export class BrokerService implements OnModuleInit {
   }
 
   async AddOrRemoveOrder(order: Order) {
+    this.logger.log('Add or remove order -->',order)
     if (order.remainingQuantity > 0 && order.type === OrderType.limit) {
       this.logger.log(
         `Adding remaining qty ${order.remainingQuantity} to order book for order ${order.id}`,
@@ -183,23 +191,15 @@ export class BrokerService implements OnModuleInit {
       this.logger.log(
         `Cancelling remaining qty ${order.remainingQuantity} for IOC order ${order.id}`,
       );
-      if (order.remainingQuantity < order.originalQuantity) {
+
         await this.prisma.order.update({
           where: { id: order.id },
           data: {
-            status: OrderStatus.partial,
+            status: order.remainingQuantity < order.originalQuantity ? OrderStatus.partial :OrderStatus.cancelled,
             remainingQuantity: order.remainingQuantity,
           },
         });
-      } else {
-        await this.prisma.order.update({
-          where: { id: order.id },
-          data: {
-            status: OrderStatus.cancelled,
-            remainingQuantity: 0,
-          },
-        });
-      }
+      
     }
   }
 }

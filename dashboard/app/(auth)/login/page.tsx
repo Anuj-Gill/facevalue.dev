@@ -15,13 +15,9 @@ export default function LoginPage() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Try to fetch user profile from backend
-        // This checks if the backend cookie is valid
         await userApi.getProfile();
-        // If successful, user is authenticated, redirect to dashboard
         router.replace('/dashboard');
       } catch {
-        // If it fails (401 or any error), user needs to login
         setIsLoading(false);
       }
     };

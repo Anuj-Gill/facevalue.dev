@@ -94,7 +94,12 @@ export default function HoldingsPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-3 text-white">
           <div className="p-2 bg-orange-500/20 rounded-xl">
-            <Briefcase className="h-7 w-7 text-orange-500" />
+            <Image
+              src="/color-lock.png"
+              alt="Holdings"
+              width={28}
+              height={28}
+            />
           </div>
           Your Portfolio
         </h1>
