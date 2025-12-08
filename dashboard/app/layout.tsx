@@ -18,6 +18,17 @@ export const metadata: Metadata = {
   description: "Trade the Tech Faces, Own the Hype",
   icons: {
     icon: '/facevalue_logo.png'
+  },
+  openGraph: {
+    title: "Face Value",
+    description: "Trade the Tech Faces, Own the Hype",
+    images: ['/og.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Face Value",
+    description: "Trade the Tech Faces, Own the Hype",
+    images: ['/og.png'],
   }
 };
 

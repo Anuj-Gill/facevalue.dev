@@ -132,7 +132,6 @@ model Holdings {
   @@unique([userId, symbolId])
 }
 
-// CEO Coin Suggestions Feature
 model CoinSuggestion {
   id          String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
   coinName    String   @unique @map("coin_name")
